@@ -29,6 +29,7 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Taxa de referência pela renda: faixas do Minha Casa, Minha Vida ou taxas de mercado
 - [x] Resumo pronto para WhatsApp e glossário dos termos
 - [x] Cota de financiamento editável (até 90%) e prazo de até 35 anos
+- [x] Imóvel na planta: encargos de evolução de obra até as chaves, com gráfico
 
 ## Stack
 
@@ -61,6 +62,7 @@ src/
 │   │   ├── encargos.ts      # seguros MIP/DFI e taxa de administração
 │   │   ├── cet.ts           # taxa interna de retorno e CET
 │   │   ├── capacidade.ts    # imóvel máximo pela renda e pela entrada
+│   │   ├── obra.ts          # fase de obra (imóvel na planta)
 │   │   ├── renda.ts         # comprometimento de renda
 │   │   └── simulacao.ts     # simular(): orquestra tudo para a UI
 │   ├── formulario/          # texto digitado → números; estado ↔ URL

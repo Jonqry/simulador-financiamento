@@ -538,3 +538,29 @@ renda, que bate com o exemplo oficial do governo (renda de R$ 4.900 → 6,5%).
   alguns bancos, até 90% em certos perfis.
 - **Rodapé com autor e contatos** (LinkedIn, GitHub, código): quem chega
   pelo link do post encontra quem fez.
+
+## 29. Evolução de obra (imóvel na planta)
+
+Na compra na planta, o banco repassa o dinheiro à construtora conforme a
+obra é medida. Até as chaves, o cliente paga **juros sobre o valor já
+liberado**, mais seguros e taxa, sem amortizar: a dívida não diminui nessa
+fase. Para muita gente é a maior surpresa do MCMV, porque o encargo cresce
+todo mês.
+
+- **Modelo:** a obra evolui de forma linear do percentual já executado na
+  assinatura até 100% no último mês, e o banco libera o mesmo percentual do
+  financiamento. Cada mês: juros e MIP sobre o saldo liberado, DFI sobre o
+  imóvel, mais a taxa. Obra começando do zero libera 1/N no primeiro mês,
+  como nos exemplos publicados pelos bancos.
+- **Separado das tabelas SAC/PRICE:** a fase de obra é igual nos dois
+  sistemas (não há amortização) e não muda as parcelas depois das chaves.
+  O resultado soma o custo da obra ao do financiamento para mostrar o custo
+  total de cada sistema.
+- **Ponto flutuante de novo:** no último mês, 0,3 + 0,7 × 24/24 dá
+  0,9999999999999999. O teste pegou, e o último mês agora é 100% exato,
+  com o saldo liberado igual ao financiamento inteiro.
+- **Simplificações assumidas:** o cronograma real de medições não é linear,
+  e a TR fica de fora (como no resto do simulador). O prazo informado no
+  formulário conta a partir das chaves; alguns contratos descontam a obra
+  do prazo total, o que vale conferir na proposta.
+- Valores conferidos com implementação independente em Python (Decimal).
