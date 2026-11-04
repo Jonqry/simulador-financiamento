@@ -1,34 +1,46 @@
 name: E2E em produção
 
-# Roda os testes de ponta a ponta no site publicado, logo depois que a
-# Vercel termina um deploy de produção (a integração da Vercel com o GitHub
-# publica um "deployment status"). Também pode ser disparado à mão.
+# Roda os testes de ponta a ponta no site publicado depois de cada push na
+# main. A Vercel publica sozinha a cada push; este workflow espera o deploy
+# DESTE commit entrar no ar (o build grava o commit em <meta name="versao">)
+# e só então testa. Não depende de a Vercel avisar o GitHub.
 on:
-  deployment_status:
+  push:
+    branches: [main]
   workflow_dispatch:
+
+# Se outro push chegar, cancela a espera do anterior: o deploy dele
+# nunca vai aparecer, porque foi substituído.
+concurrency:
+  group: e2e-producao
+  cancel-in-progress: true
 
 jobs:
   e2e:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.deployment_status.state == 'success' &&
-       github.event.deployment_status.environment == 'Production')
     runs-on: ubuntu-latest
     env:
-      # Domínio de produção (público). Os endereços únicos de cada deploy
-      # ficam protegidos por login na Vercel, por isso não usamos o
-      # environment_url do evento.
       BASE_URL: https://simulador-financiamento-blush.vercel.app
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.deployment.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+
+      - name: Esperar a Vercel publicar este commit (até 10 min)
+        run: |
+          for tentativa in $(seq 1 60); do
+            if curl -fsS "$BASE_URL/?nocache=$tentativa" | grep -q "name=\"versao\" content=\"$GITHUB_SHA\""; then
+              echo "Deploy de $GITHUB_SHA está no ar."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::O deploy de $GITHUB_SHA não apareceu em 10 minutos."
+          exit 1
+
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: failure()

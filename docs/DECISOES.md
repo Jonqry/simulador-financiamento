@@ -434,10 +434,20 @@ gráficos, URL, área de transferência, tags de prévia.
 - **Dois jeitos de rodar:** sem `BASE_URL`, o Playwright sobe o build local
   (`vite preview`), que é o que o CI faz a cada push; com `BASE_URL`, testa
   um site já publicado.
-- **Após cada deploy de produção:** o workflow `e2e-producao.yml` escuta o
-  evento `deployment_status` que a Vercel publica no GitHub e roda os testes
-  no domínio de produção. Usa o domínio público, não a URL única do deploy,
-  que fica protegida por login na Vercel.
+- **Após cada deploy de produção:** o workflow `e2e-producao.yml` roda a
+  cada push na `main`, **espera o deploy daquele commit entrar no ar** e só
+  então testa o domínio público. Para saber qual versão está no ar, o build
+  grava o commit numa meta tag (`<meta name="versao">`, a partir da variável
+  `VERCEL_GIT_COMMIT_SHA` da Vercel); o workflow consulta o site a cada 10 s,
+  por até 10 minutos. Com `concurrency`, um push novo cancela a espera do
+  anterior, cujo deploy nunca vai aparecer.
+
+  *Primeira tentativa que não funcionou:* escutar o evento
+  `deployment_status`, que a integração da Vercel costuma publicar no GitHub.
+  Depois do push, conferi a página de deployments do repositório: 404. Este
+  projeto não publica deployments no GitHub, então o workflow nunca
+  dispararia. A solução da meta tag não depende de integração nenhuma:
+  funciona com qualquer hospedagem.
 
 **O primeiro E2E já pegou um bug real.** A seção "Amortização extra" abria
 quando havia erro (`open={temErro}`), e quando a pessoa corrigia o erro o
