@@ -1,3 +1,4 @@
+import { capacidadeDeCompra, type Capacidade } from './capacidade'
 import { calcularCetAnual } from './cet'
 import { aplicarEncargos, type ComEncargos, type Encargos } from './encargos'
 import { extrasRecorrentes, gerarTabela, type ModoAmortizacaoExtra, type ParcelaComExtra } from './motor'
@@ -70,6 +71,7 @@ export interface ResumoExtra {
 export type ComparacaoExtra = Record<Sistema, Record<ModoAmortizacaoExtra, ResumoExtra>>
 
 export interface ResultadoSimulacao {
+  entrada: Centavos
   valorFinanciado: Centavos
   taxaMensal: Taxa
   sac: ResultadoSistema
@@ -82,6 +84,8 @@ export interface ResultadoSimulacao {
     /** Quanto a 1ª parcela total do SAC é maior que a da PRICE. */
     diferencaPrimeiraParcela: Centavos
   }
+  /** Até quanto o cliente pode comprar com essa renda, entrada, taxa e prazo. */
+  capacidade: Record<Sistema, Capacidade>
   /** Presente só quando há pagamento extra informado. */
   amortizacaoExtra?: ComparacaoExtra
 }
@@ -252,10 +256,18 @@ export function simular(entrada: EntradaSimulacao): ResultadoSimulacao {
       entrada.valorImovel,
       encargos,
     )
+  const paramsCapacidade = {
+    entrada: entrada.entrada,
+    rendaMensal: entrada.rendaMensal,
+    taxaMensal,
+    prazoMeses: entrada.prazoMeses,
+    encargos,
+  }
   const sac = montarResultado(tabela('SAC'), valorFinanciado, entrada.rendaMensal)
   const price = montarResultado(tabela('PRICE'), valorFinanciado, entrada.rendaMensal)
 
   const resultado: ResultadoSimulacao = {
+    entrada: entrada.entrada,
     valorFinanciado,
     taxaMensal,
     sac,
@@ -264,6 +276,10 @@ export function simular(entrada: EntradaSimulacao): ResultadoSimulacao {
       economiaJurosSac: price.resumo.totalJuros - sac.resumo.totalJuros,
       economiaTotalSac: price.custos.totalPago - sac.custos.totalPago,
       diferencaPrimeiraParcela: sac.custos.primeiraParcela - price.custos.primeiraParcela,
+    },
+    capacidade: {
+      SAC: capacidadeDeCompra('SAC', paramsCapacidade),
+      PRICE: capacidadeDeCompra('PRICE', paramsCapacidade),
     },
   }
 

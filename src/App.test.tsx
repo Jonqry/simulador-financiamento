@@ -134,6 +134,58 @@ describe('App', () => {
     expect(texto(within(tabela()).getAllByRole('row')[1]!)).toContain('R$ 3.174,53')
   })
 
+  it('mostra até quanto o cliente pode comprar e o que limita', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const painel = () => screen.getByRole('heading', { name: /Até quanto esse cliente pode comprar/ }).closest('section')!
+    // Entrada de R$ 80 mil e cota de 80%: imóvel de até R$ 400 mil.
+    expect(texto(painel())).toContain('R$ 400.000,00')
+    expect(texto(painel())).toContain('Quem limita é a entrada')
+
+    const entrada = screen.getByLabelText('Entrada')
+    await user.clear(entrada)
+    await user.type(entrada, '300000')
+    // Valores conferidos com implementação independente em Python.
+    expect(texto(painel())).toContain('R$ 663.370,87')
+    expect(texto(painel())).toContain('Quem limita é a renda')
+  })
+
+  it('sugere a taxa do MCMV pela renda e aplica com um clique', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    // Renda padrão (R$ 15 mil) está acima do MCMV: mostra taxas de mercado.
+    expect(screen.getByText(/Renda acima do Minha Casa, Minha Vida/)).toBeTruthy()
+
+    const renda = screen.getByLabelText('Renda bruta mensal')
+    await user.clear(renda)
+    await user.type(renda, '7000')
+    expect(screen.getByText(/Faixa 3/)).toBeTruthy()
+
+    await user.selectOptions(screen.getByLabelText('Cotista do FGTS'), 'sim')
+    await user.click(screen.getByRole('button', { name: 'Usar 7,66%' }))
+    expect(screen.getByLabelText('Taxa de juros')).toHaveProperty('value', '7,66')
+    // O imóvel padrão (R$ 400 mil) está no teto da Faixa 3: sem aviso.
+    expect(screen.queryByText(/passa do teto da faixa/)).toBeNull()
+  })
+
+  it('copia um resumo pronto para WhatsApp, sem a renda do cliente', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText')
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Copiar resumo para o cliente' }))
+    const copiado = writeText.mock.lastCall?.[0] ?? ''
+    expect(copiado).toMatch(/^\*Simulação de financiamento imobiliário\*/)
+    expect(copiado.replace(/\u00a0/g, ' ')).toContain('1ª parcela: R$ 3.947,46')
+    expect(copiado).toContain('Veja os detalhes: http')
+    expect(copiado).not.toContain('15.000')
+  })
+
+  it('tem um glossário com os termos usados', () => {
+    render(<App />)
+    expect(screen.getByText('Entenda os termos')).toBeTruthy()
+    expect(screen.getByText('Cota de financiamento')).toBeTruthy()
+  })
+
   it('copia o link da simulação', async () => {
     const user = userEvent.setup()
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')

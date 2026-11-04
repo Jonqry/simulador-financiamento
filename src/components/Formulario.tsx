@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { formatarBRL, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
 import { parseNumeroBR } from '../lib/formulario/numero'
-import type { ValoresFormulario } from '../lib/formulario/valores'
-import { BotaoCompartilhar } from './BotaoCompartilhar'
+import { converter, type ValoresFormulario } from '../lib/formulario/valores'
+import { gerarResumoCliente } from '../lib/resumoCliente'
+import { BotaoCompartilhar, BotaoCopiar } from './BotaoCompartilhar'
 import { Campo } from './Campo'
+import { SugestaoTaxa } from './SugestaoTaxa'
 
 interface FormularioProps {
   valores: ValoresFormulario
@@ -47,6 +49,26 @@ function Secao({ titulo, resumo, temErro, children }: { titulo: string; resumo?:
       </summary>
       <div className="space-y-4 px-3 pt-1 pb-4">{children}</div>
     </details>
+  )
+}
+
+function textoResumo(valores: ValoresFormulario, resultado: ResultadoSimulacao): string {
+  const conversao = converter(valores)
+  if (!conversao.ok) return window.location.href
+  const e = conversao.entrada
+  const intervalo = e.extraIntervalo ?? 0
+  const quando = intervalo === 24 ? 'a cada 2 anos' : intervalo === 12 ? 'todo ano' : `no mês ${e.extraMes}`
+  return gerarResumoCliente(
+    {
+      valorImovel: e.valorImovel,
+      entrada: e.entrada,
+      taxaAnual: e.taxaAnual,
+      prazoMeses: e.prazoMeses,
+      temEncargos: (e.mipMensal ?? 0) + (e.dfiMensal ?? 0) + (e.taxaAdministracao ?? 0) > 0,
+      descricaoExtra: e.extraValor ? `${formatarBRL(e.extraValor)} ${quando}` : undefined,
+    },
+    resultado,
+    window.location.href,
   )
 }
 
@@ -94,6 +116,11 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
         prefixo="R$"
         {...campo('rendaMensal')}
         dica="Soma da renda de quem vai compor o financiamento."
+      />
+      <SugestaoTaxa
+        rendaTexto={valores.rendaMensal}
+        valorImovelTexto={valores.valorImovel}
+        usarTaxa={(taxa) => alterar('taxaAnual', taxa)}
       />
 
       <Secao
@@ -145,7 +172,17 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
         </div>
       </Secao>
 
-      <BotaoCompartilhar desabilitado={!resultado} />
+      <div className="space-y-1">
+        <BotaoCompartilhar desabilitado={!resultado} />
+        <BotaoCopiar
+          variante="secundario"
+          rotulo="Copiar resumo para o cliente"
+          rotuloCopiado="Resumo copiado! Cole no WhatsApp"
+          obterTexto={() => (resultado ? textoResumo(valores, resultado) : '')}
+          desabilitado={!resultado}
+          mensagemFalha="Não foi possível copiar o resumo neste navegador."
+        />
+      </div>
     </form>
   )
 }

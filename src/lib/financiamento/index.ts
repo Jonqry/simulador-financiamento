@@ -1,4 +1,5 @@
 // API pública do módulo de cálculo. A UI importa só daqui.
+export * from './capacidade'
 export * from './cet'
 export * from './dinheiro'
 export * from './encargos'

@@ -1,6 +1,8 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { Formulario } from './components/Formulario'
+import { Glossario } from './components/Glossario'
 import { PainelAmortizacaoExtra } from './components/PainelAmortizacaoExtra'
+import { PainelCapacidade } from './components/PainelCapacidade'
 import { ResumoComparacao } from './components/ResumoComparacao'
 import { SeletorSistema } from './components/SeletorSistema'
 import { TabelaAmortizacao } from './components/TabelaAmortizacao'
@@ -53,6 +55,10 @@ export default function App() {
           <div className="min-w-0 space-y-6">
             <ResumoComparacao resultado={resultado} />
 
+            <Painel titulo="Até quanto esse cliente pode comprar?">
+              <PainelCapacidade capacidade={resultado.capacidade} entrada={resultado.entrada} />
+            </Painel>
+
             {resultado.amortizacaoExtra && (
               <Painel titulo="Amortização extra: reduzir prazo ou parcela?">
                 <PainelAmortizacaoExtra
@@ -90,6 +96,15 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <section className="mx-auto max-w-6xl px-4 pb-6">
+        <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <summary className="cursor-pointer font-semibold text-slate-900">Entenda os termos</summary>
+          <div className="mt-4">
+            <Glossario />
+          </div>
+        </details>
+      </section>
 
       <footer className="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-500">
         Simulação educativa: seguros e taxa usam os valores informados, e o cálculo não inclui correção pela TR nem

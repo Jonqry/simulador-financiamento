@@ -104,3 +104,23 @@ test('tem as tags de prévia para WhatsApp/LinkedIn', async ({ page, request }) 
   expect(resposta.ok()).toBe(true)
   expect(resposta.headers()['content-type']).toContain('image/png')
 })
+
+test('corretor: taxa pela renda, imóvel máximo e resumo para o cliente', async ({ page, context, browserName }) => {
+  await page.goto(LINK_PADRAO)
+
+  await digitar(page, 'Renda bruta mensal', '7000')
+  await expect(page.getByText(/Faixa 3/)).toBeVisible()
+  await page.getByRole('button', { name: /^Usar / }).click()
+  await expect(page.getByLabel('Taxa de juros')).toHaveValue('8,16')
+
+  const capacidade = page.locator('section').filter({ has: page.getByRole('heading', { name: /Até quanto/ }) })
+  await expect(capacidade).toContainText('imóvel de até')
+
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.getByRole('button', { name: 'Copiar resumo para o cliente' }).click()
+    const resumo = await page.evaluate(() => navigator.clipboard.readText())
+    expect(resumo).toContain('Simulação de financiamento imobiliário')
+    expect(resumo).toContain('8,16% ao ano')
+  }
+})
