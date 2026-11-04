@@ -1,0 +1,38 @@
+name: E2E em produção
+
+# Roda os testes de ponta a ponta no site publicado, logo depois que a
+# Vercel termina um deploy de produção (a integração da Vercel com o GitHub
+# publica um "deployment status"). Também pode ser disparado à mão.
+on:
+  deployment_status:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment_status.environment == 'Production')
+    runs-on: ubuntu-latest
+    env:
+      # Domínio de produção (público). Os endereços únicos de cada deploy
+      # ficam protegidos por login na Vercel, por isso não usamos o
+      # environment_url do evento.
+      BASE_URL: https://simulador-financiamento-blush.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: relatorio-playwright-producao
+          path: playwright-report/
+          retention-days: 7
