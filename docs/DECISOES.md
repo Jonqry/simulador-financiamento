@@ -518,3 +518,23 @@ renda, que bate com o exemplo oficial do governo (renda de R$ 4.900 → 6,5%).
 - **Glossário** em linguagem de cliente (SAC, PRICE, MIP, DFI, CET, cota, TR
   etc.), para o corretor usar na conversa. Inclui a TR, que o simulador não
   calcula, para deixar essa limitação clara.
+
+## 28. Foco no MCMV, cota editável e rodapé
+
+- **Nenhum banco específico como base.** Os valores do formulário são um
+  ponto de partida: taxa, seguros e cota se trocam pelos da proposta. O
+  prazo vai até 420 meses (35 anos), que é o máximo da Caixa e do BB.
+- **Cenário inicial do MCMV:** imóvel de R$ 250 mil, 20% de entrada, 35 anos,
+  renda de R$ 6 mil e a taxa da Faixa 3 para não cotista (8,16%). Nele o SAC
+  passa de 30% da renda (31,46%) e a PRICE cabe (25,03%): logo na primeira
+  tela aparece o trade-off que o simulador existe para mostrar.
+- **Testes desacoplados do cenário padrão:** os testes de interface abrem
+  um link explícito. Mudar os valores iniciais quebrou só os testes que
+  verificam os próprios valores iniciais, e não os de comportamento.
+- **Cota de financiamento editável** (10% a 90%, padrão 80%), na seção
+  "Condições do banco" e no link (`cota=`). Vale para o imóvel máximo, e o
+  campo de entrada avisa quando ela fica abaixo do mínimo pela cota. A
+  maioria dos bancos financia até 80%; a Faixa 4 do MCMV, de 60% a 70%;
+  alguns bancos, até 90% em certos perfis.
+- **Rodapé com autor e contatos** (LinkedIn, GitHub, código): quem chega
+  pelo link do post encontra quem fez.

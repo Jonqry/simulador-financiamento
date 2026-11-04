@@ -28,6 +28,7 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Imóvel máximo que o cliente pode comprar (e se quem limita é a renda ou a entrada)
 - [x] Taxa de referência pela renda: faixas do Minha Casa, Minha Vida ou taxas de mercado
 - [x] Resumo pronto para WhatsApp e glossário dos termos
+- [x] Cota de financiamento editável (até 90%) e prazo de até 35 anos
 
 ## Stack
 
