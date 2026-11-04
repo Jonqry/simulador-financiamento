@@ -2,6 +2,7 @@ import { capacidadeDeCompra, COTA_FINANCIAMENTO_PADRAO, type Capacidade } from '
 import { calcularCetAnual } from './cet'
 import { aplicarEncargos, type ComEncargos, type Encargos } from './encargos'
 import { extrasRecorrentes, gerarTabela, type ModoAmortizacaoExtra, type ParcelaComExtra } from './motor'
+import { calcularFaseObra, MESES_OBRA_MAXIMO, resumirObra, type ParcelaObra, type ResumoObra } from './obra'
 import { avaliarComprometimento, type Comprometimento } from './renda'
 import { taxaMensalDeAnualEfetiva } from './taxas'
 import type { Centavos, Parcela, ParametrosAmortizacao, ResumoSistema, Sistema, Taxa } from './tipos'
@@ -33,6 +34,17 @@ export interface EntradaSimulacao {
   extraIntervalo?: number
   /** Parte máxima do imóvel que o banco financia (0.8 = 80%). Padrão: 80%. */
   cotaFinanciamento?: Taxa
+  /** Imóvel na planta: meses até a entrega das chaves. 0 ou ausente = imóvel pronto. */
+  obraMeses?: number
+  /** Quanto da obra já está executado na assinatura (0.3 = 30%). Padrão: 0. */
+  obraExecutada?: Taxa
+}
+
+export interface ResultadoObra {
+  parcelas: ParcelaObra[]
+  resumo: ResumoObra
+  /** Total pago na obra + total pago no financiamento, por sistema. */
+  custoTotal: Record<Sistema, Centavos>
 }
 
 export type ParcelaSimulada = ComEncargos<Parcela>
@@ -92,6 +104,8 @@ export interface ResultadoSimulacao {
   capacidade: Record<Sistema, Capacidade>
   /** Presente só quando há pagamento extra informado. */
   amortizacaoExtra?: ComparacaoExtra
+  /** Presente só para imóvel na planta (fase de obra antes das chaves). */
+  obra?: ResultadoObra
 }
 
 export type CampoSimulacao = keyof EntradaSimulacao
@@ -139,6 +153,15 @@ export function validarSimulacao(e: EntradaSimulacao): ErrosSimulacao {
   const cota = e.cotaFinanciamento ?? COTA_FINANCIAMENTO_PADRAO
   if (!Number.isFinite(cota) || cota < 0.1 || cota > 0.9) {
     erros.cotaFinanciamento = 'Use um valor entre 10% e 90%.'
+  }
+
+  const obraMeses = e.obraMeses ?? 0
+  if (obraMeses !== 0 && !ehInteiroEntre(obraMeses, 1, MESES_OBRA_MAXIMO)) {
+    erros.obraMeses = `Informe de 1 a ${MESES_OBRA_MAXIMO} meses (ou deixe vazio se o imóvel está pronto).`
+  }
+  const obraExecutada = e.obraExecutada ?? 0
+  if (!Number.isFinite(obraExecutada) || obraExecutada < 0 || obraExecutada > 0.99) {
+    erros.obraExecutada = 'Use um valor entre 0% e 99%.'
   }
 
   const extraValor = e.extraValor ?? 0
@@ -292,6 +315,26 @@ export function simular(entrada: EntradaSimulacao): ResultadoSimulacao {
       SAC: capacidadeDeCompra('SAC', paramsCapacidade),
       PRICE: capacidadeDeCompra('PRICE', paramsCapacidade),
     },
+  }
+
+  if ((entrada.obraMeses ?? 0) > 0) {
+    const parcelas = calcularFaseObra({
+      financiado: valorFinanciado,
+      valorImovel: entrada.valorImovel,
+      taxaMensal,
+      mesesObra: entrada.obraMeses!,
+      executadaInicial: entrada.obraExecutada ?? 0,
+      encargos,
+    })
+    const resumo = resumirObra(parcelas)
+    resultado.obra = {
+      parcelas,
+      resumo,
+      custoTotal: {
+        SAC: resumo.totalPago + sac.custos.totalPago,
+        PRICE: resumo.totalPago + price.custos.totalPago,
+      },
+    }
   }
 
   if ((entrada.extraValor ?? 0) > 0) {

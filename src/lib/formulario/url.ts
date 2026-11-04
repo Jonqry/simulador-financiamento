@@ -17,6 +17,8 @@ export const PARAMETROS_URL: Record<CampoSimulacao, string> = {
   dfiMensal: 'dfi',
   taxaAdministracao: 'adm',
   cotaFinanciamento: 'cota',
+  obraMeses: 'obra',
+  obraExecutada: 'executada',
   extraValor: 'extra',
   extraMes: 'mesExtra',
   extraIntervalo: 'repetir',

@@ -44,6 +44,8 @@ const CONFIG: Record<CampoSimulacao, ConfigCampo> = {
   dfiMensal: { unidade: 'percentual', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.dfiMensal * 100 },
   taxaAdministracao: { unidade: 'reais', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.taxaAdministracao / 100 },
   cotaFinanciamento: { unidade: 'percentual', obrigatorio: false, padrao: COTA_FINANCIAMENTO_PADRAO * 100 },
+  obraMeses: { unidade: 'inteiro', obrigatorio: false, padrao: null },
+  obraExecutada: { unidade: 'percentual', obrigatorio: false, padrao: null },
   extraValor: { unidade: 'reais', obrigatorio: false, padrao: null },
   extraMes: { unidade: 'inteiro', obrigatorio: false, padrao: null },
   extraIntervalo: { unidade: 'inteiro', obrigatorio: false, padrao: 0 },

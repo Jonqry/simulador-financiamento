@@ -13,6 +13,8 @@ describe('VALORES_PADRAO', () => {
       dfiMensal: '0,01',
       taxaAdministracao: '25',
       cotaFinanciamento: '80',
+      obraMeses: '',
+      obraExecutada: '',
       extraValor: '',
       extraMes: '',
       extraIntervalo: '0',

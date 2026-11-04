@@ -40,6 +40,11 @@ const TERMOS: { termo: string; explicacao: string }[] = [
       'O saldo do FGTS pode abater a dívida a cada 2 anos. Dá para reduzir o prazo (economiza mais) ou o valor da parcela (alivia o orçamento).',
   },
   {
+    termo: 'Evolução de obra (juros de obra)',
+    explicacao:
+      'Na compra na planta, o banco repassa o dinheiro à construtora conforme a obra avança. Até as chaves, o cliente paga juros sobre o valor já repassado, mais seguros e taxa; esse valor cresce todo mês e não abate a dívida.',
+  },
+  {
     termo: 'TR',
     explicacao:
       'Taxa Referencial, que corrige o saldo devedor em muitos contratos. Este simulador não a inclui; com TR, os valores reais ficam um pouco maiores.',

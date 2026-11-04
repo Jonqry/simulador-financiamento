@@ -173,6 +173,28 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
       </Secao>
 
       <Secao
+        titulo="Imóvel na planta (evolução de obra)"
+        resumo={
+          (parseNumeroBR(valores.obraMeses) ?? 0) > 0
+            ? `${valores.obraMeses} meses até as chaves · ${valores.obraExecutada || '0'}% executado`
+            : 'Opcional'
+        }
+        temErro={Boolean(erros.obraMeses || erros.obraExecutada)}
+      >
+        <p className="text-xs text-slate-600">
+          Na planta, até as chaves você paga juros sobre o valor que o banco já repassou à construtora, mais seguros e
+          taxa. A amortização começa depois.
+        </p>
+        <Campo rotulo="Meses até as chaves" sufixo="meses" {...campo('obraMeses')} dica="Deixe vazio se o imóvel está pronto." />
+        <Campo
+          rotulo="Obra já executada"
+          sufixo="%"
+          {...campo('obraExecutada')}
+          dica="Percentual concluído na assinatura do contrato (está no cronograma da construtora)."
+        />
+      </Secao>
+
+      <Secao
         titulo="Amortização extra (FGTS)"
         resumo={temExtra ? `R$ ${valores.extraValor} a partir do mês ${valores.extraMes || '?'}` : 'Opcional'}
         temErro={Boolean(erros.extraValor || erros.extraMes || erros.extraIntervalo)}

@@ -3,6 +3,7 @@ import { Formulario } from './components/Formulario'
 import { Glossario } from './components/Glossario'
 import { PainelAmortizacaoExtra } from './components/PainelAmortizacaoExtra'
 import { PainelCapacidade } from './components/PainelCapacidade'
+import { PainelObra } from './components/PainelObra'
 import { ResumoComparacao } from './components/ResumoComparacao'
 import { SeletorSistema } from './components/SeletorSistema'
 import { TabelaAmortizacao } from './components/TabelaAmortizacao'
@@ -54,6 +55,12 @@ export default function App() {
         {resultado && detalhe ? (
           <div className="min-w-0 space-y-6">
             <ResumoComparacao resultado={resultado} />
+
+            {resultado.obra && (
+              <Painel titulo={`Durante a obra: ${resultado.obra.resumo.meses} meses até as chaves`}>
+                <PainelObra obra={resultado.obra} resultado={resultado} />
+              </Painel>
+            )}
 
             <Painel titulo="Até quanto esse cliente pode comprar?">
               <PainelCapacidade capacidade={resultado.capacidade} entrada={resultado.entrada} cota={resultado.cotaFinanciamento} />

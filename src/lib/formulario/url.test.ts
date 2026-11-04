@@ -9,7 +9,7 @@ describe('lerDaUrl', () => {
 
   it('lê todos os campos e formata em padrão brasileiro', () => {
     expect(
-      lerDaUrl('?valor=550000&entrada=110000.5&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&cota=90&extra=20000&mesExtra=24&repetir=24'),
+      lerDaUrl('?valor=550000&entrada=110000.5&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&cota=90&obra=24&executada=30&extra=20000&mesExtra=24&repetir=24'),
     ).toEqual({
       valorImovel: '550.000',
       entrada: '110.000,5',
@@ -20,6 +20,8 @@ describe('lerDaUrl', () => {
       dfiMensal: '0,0075',
       taxaAdministracao: '30',
       cotaFinanciamento: '90',
+      obraMeses: '24',
+      obraExecutada: '30',
       extraValor: '20.000',
       extraMes: '24',
       extraIntervalo: '24',

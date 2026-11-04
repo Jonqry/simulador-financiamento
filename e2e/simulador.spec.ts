@@ -96,6 +96,15 @@ test('copia o link da simulação', async ({ page, context, browserName }) => {
   expect(copiado).toContain('valor=400000')
 })
 
+test('imóvel na planta: painel e gráfico da evolução de obra', async ({ page }) => {
+  await page.goto('/?obra=24&executada=30')
+
+  const painel = page.locator('section').filter({ has: page.getByRole('heading', { name: /Durante a obra/ }) })
+  await expect(painel).toContainText('R$ 498,21')
+  await expect(painel).toContainText('R$ 22.918,16')
+  await expect(painel.locator('svg.recharts-surface')).toHaveCount(1)
+})
+
 test('rodapé com o autor e links de contato', async ({ page }) => {
   await page.goto('/')
   const contato = page.getByRole('navigation', { name: 'Contato' })

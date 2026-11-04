@@ -238,6 +238,24 @@ describe('App', () => {
     expect(within(contato).getByRole('link', { name: 'GitHub' }).getAttribute('href')).toBe('https://github.com/Jonqry')
   })
 
+  it('imóvel na planta: mostra os encargos da obra até as chaves', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    expect(screen.queryByRole('heading', { name: /Durante a obra/ })).toBeNull()
+
+    await user.type(screen.getByLabelText('Meses até as chaves'), '24')
+    await user.type(screen.getByLabelText('Obra já executada'), '30')
+
+    const painel = screen.getByRole('heading', { name: 'Durante a obra: 24 meses até as chaves' }).closest('section')!
+    // Valores conferidos com implementação independente em Python.
+    expect(texto(painel)).toContain('R$ 498,21') // 1º mês, obra em 33%
+    expect(texto(painel)).toContain('R$ 1.411,64') // último mês, obra em 100%
+    expect(texto(painel)).toContain('R$ 22.918,16') // total na obra
+    expect(texto(painel)).toContain('Nessa fase a dívida não diminui')
+    expect(window.location.search).toContain('obra=24&executada=30')
+  })
+
   it('copia o link da simulação', async () => {
     const user = userEvent.setup()
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')

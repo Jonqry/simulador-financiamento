@@ -38,6 +38,15 @@ export function gerarResumoCliente(dados: DadosResumo, r: ResultadoSimulacao, li
     `Total pago: ${formatarBRL(price.custos.totalPago)}`,
   ]
 
+  if (r.obra) {
+    const { resumo } = r.obra
+    linhas.push(
+      '',
+      `*Durante a obra* (${resumo.meses} meses até as chaves)`,
+      `De ${formatarBRL(resumo.primeiroEncargo)} a ${formatarBRL(resumo.ultimoEncargo)} por mês, total de ${formatarBRL(resumo.totalPago)}. As parcelas acima começam depois das chaves.`,
+    )
+  }
+
   if (r.comparacao.economiaTotalSac > 0) {
     linhas.push('', `No SAC o total fica ${formatarBRL(r.comparacao.economiaTotalSac)} menor, mas a 1ª parcela é mais alta.`)
   }

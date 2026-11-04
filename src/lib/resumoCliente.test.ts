@@ -52,6 +52,13 @@ describe('gerarResumoCliente', () => {
     expect(texto).toContain('Usando R$ 20.000,00 a cada 2 anos para reduzir o prazo, a economia é de R$ 254.700,79 no SAC.')
   })
 
+  it('inclui a fase de obra quando o imóvel é na planta', () => {
+    const r = simular({ ...ENTRADA, obraMeses: 24, obraExecutada: 0.3 })
+    const texto = normalizar(gerarResumoCliente(DADOS, r, LINK))
+    expect(texto).toContain('*Durante a obra* (24 meses até as chaves)')
+    expect(texto).toContain('As parcelas acima começam depois das chaves.')
+  })
+
   it('sem encargos e sem juros: aviso adequado e sem frase de economia', () => {
     const r = simular({ ...ENTRADA, taxaAnual: 0, mipMensal: 0, dfiMensal: 0, taxaAdministracao: 0, prazoMeses: 100 })
     const texto = normalizar(gerarResumoCliente({ ...DADOS, taxaAnual: 0, prazoMeses: 100, temEncargos: false }, r, LINK))

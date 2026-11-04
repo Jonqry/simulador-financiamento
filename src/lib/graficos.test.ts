@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { aplicarEncargos, calcularPRICE, calcularSAC } from './financiamento'
-import { dadosComposicao, dadosSaldo, marcasAnuais, rotuloMes } from './graficos'
+import { aplicarEncargos, calcularFaseObra, calcularPRICE, calcularSAC } from './financiamento'
+import { dadosComposicao, dadosObra, dadosSaldo, marcasAnuais, rotuloMes } from './graficos'
 
 const PARAMS = { principal: 1_000_00, taxaMensal: 0.01, prazoMeses: 3 }
 
@@ -55,5 +55,23 @@ describe('rotuloMes', () => {
     [360, 'Mês 360 · ano 30'],
   ])('%i → %s', (mes, esperado) => {
     expect(rotuloMes(mes)).toBe(esperado)
+  })
+})
+
+describe('dadosObra', () => {
+  it('separa juros e encargos de cada mês da obra', () => {
+    const fase = calcularFaseObra({
+      financiado: 100_000_00,
+      valorImovel: 200_000_00,
+      taxaMensal: 0.01,
+      mesesObra: 2,
+      executadaInicial: 0.5,
+      encargos: { mipMensal: 0.001, dfiMensal: 0.0001, taxaAdministracao: 10_00 },
+    })
+    expect(dadosObra(fase)).toEqual([
+      // 75% liberado: juros 750, MIP 75, DFI 20, taxa 10
+      { mes: 1, juros: 750_00, encargos: 75_00 + 20_00 + 10_00, percentualObra: 0.75 },
+      { mes: 2, juros: 1_000_00, encargos: 100_00 + 20_00 + 10_00, percentualObra: 1 },
+    ])
   })
 })

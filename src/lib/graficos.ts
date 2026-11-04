@@ -1,4 +1,4 @@
-import type { Centavos, Parcela, ParcelaSimulada } from './financiamento'
+import type { Centavos, Parcela, ParcelaObra, ParcelaSimulada, Taxa } from './financiamento'
 
 export interface PontoSaldo {
   mes: number
@@ -53,4 +53,22 @@ export function rotuloMes(mes: number): string {
   if (mes === 0) return 'Início'
   const ano = Math.floor((mes - 1) / 12) + 1
   return `Mês ${mes} · ano ${ano}`
+}
+
+export interface PontoObra {
+  mes: number
+  juros: Centavos
+  /** Seguros (MIP + DFI) + taxa de administração. */
+  encargos: Centavos
+  percentualObra: Taxa
+}
+
+/** Encargos da fase de obra para o gráfico de áreas empilhadas. */
+export function dadosObra(parcelas: ParcelaObra[]): PontoObra[] {
+  return parcelas.map(({ mes, juros, mip, dfi, taxaAdministracao, percentualObra }) => ({
+    mes,
+    juros,
+    encargos: mip + dfi + taxaAdministracao,
+    percentualObra,
+  }))
 }
