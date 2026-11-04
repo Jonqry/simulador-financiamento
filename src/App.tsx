@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { Formulario } from './components/Formulario'
+import { PainelAmortizacaoExtra } from './components/PainelAmortizacaoExtra'
 import { ResumoComparacao } from './components/ResumoComparacao'
 import { SeletorSistema } from './components/SeletorSistema'
 import { TabelaAmortizacao } from './components/TabelaAmortizacao'
@@ -52,6 +53,15 @@ export default function App() {
           <div className="min-w-0 space-y-6">
             <ResumoComparacao resultado={resultado} />
 
+            {resultado.amortizacaoExtra && (
+              <Painel titulo="Amortização extra: reduzir prazo ou parcela?">
+                <PainelAmortizacaoExtra
+                  comparacao={resultado.amortizacaoExtra}
+                  prazoOriginal={resultado.sac.parcelas.length}
+                />
+              </Painel>
+            )}
+
             <Painel titulo="Saldo devedor ao longo do tempo">
               <Suspense fallback={<CarregandoGrafico />}>
                 <GraficoSaldo resultado={resultado} />
@@ -82,8 +92,8 @@ export default function App() {
       </main>
 
       <footer className="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-500">
-        Simulação educativa: não inclui seguros (MIP/DFI), taxa de administração nem correção pela TR. Os valores
-        reais dependem das condições de cada banco.{' '}
+        Simulação educativa: seguros e taxa usam os valores informados, e o cálculo não inclui correção pela TR nem
+        custos de contratação (avaliação, registro, ITBI). Os valores reais dependem das condições de cada banco.{' '}
         <a className="underline hover:text-slate-700" href="https://github.com/Jonqry/simulador-financiamento">
           Código no GitHub
         </a>

@@ -1,17 +1,17 @@
 import { useMemo } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { CORES } from '../../cores'
-import { formatarBRLCompacto, type Parcela } from '../../lib/financiamento'
+import { formatarBRLCompacto, type ParcelaSimulada } from '../../lib/financiamento'
 import { dadosComposicao, marcasAnuais, type PontoComposicao } from '../../lib/graficos'
 import { DicaGrafico } from './DicaGrafico'
 import { Legenda } from './Legenda'
 
 /**
- * Quanto de cada parcela é juros e quanto é amortização (áreas empilhadas:
- * a altura total é a própria parcela). Mostra por que, na PRICE, a dívida
+ * Quanto de cada parcela é amortização, juros e seguros/taxa (áreas
+ * empilhadas: a altura total é a própria parcela). Mostra por que, na PRICE, a dívida
  * quase não cai nos primeiros anos.
  */
-export function GraficoComposicao({ parcelas }: { parcelas: Parcela[] }) {
+export function GraficoComposicao({ parcelas }: { parcelas: ParcelaSimulada[] }) {
   const dados = useMemo(() => dadosComposicao(parcelas), [parcelas])
   const prazo = parcelas.length
 
@@ -21,6 +21,7 @@ export function GraficoComposicao({ parcelas }: { parcelas: Parcela[] }) {
         itens={[
           { nome: 'Amortização', cor: CORES.amortizacao },
           { nome: 'Juros', cor: CORES.juros },
+          { nome: 'Seguros e taxa', cor: CORES.encargos },
         ]}
       />
       <div className="h-72">
@@ -55,8 +56,9 @@ export function GraficoComposicao({ parcelas }: { parcelas: Parcela[] }) {
                     itens={[
                       { nome: 'Amortização', valor: ponto.amortizacao, cor: CORES.amortizacao },
                       { nome: 'Juros', valor: ponto.juros, cor: CORES.juros },
+                      { nome: 'Seguros e taxa', valor: ponto.encargos, cor: CORES.encargos },
                     ]}
-                    total={{ nome: 'Parcela', valor: ponto.amortizacao + ponto.juros }}
+                    total={{ nome: 'Parcela', valor: ponto.amortizacao + ponto.juros + ponto.encargos }}
                   />
                 )
               }}
@@ -81,11 +83,21 @@ export function GraficoComposicao({ parcelas }: { parcelas: Parcela[] }) {
               fillOpacity={0.15}
               isAnimationActive={false}
             />
+            <Area
+              dataKey="encargos"
+              name="Seguros e taxa"
+              stackId="parcela"
+              stroke={CORES.encargos}
+              strokeWidth={2}
+              fill={CORES.encargos}
+              fillOpacity={0.2}
+              isAnimationActive={false}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>
       <figcaption className="sr-only">
-        Composição de cada parcela entre juros e amortização. Os valores exatos estão na tabela de amortização.
+        Composição de cada parcela entre amortização, juros, seguros e taxa. Os valores exatos estão na tabela de amortização.
       </figcaption>
     </figure>
   )

@@ -11,6 +11,7 @@ export const CORES = {
   price: '#eb6834',
   amortizacao: '#1baf7a',
   juros: '#6250d6',
+  encargos: '#e87ba4',
   grade: '#e2e8f0',
   eixo: '#64748b',
 } as const

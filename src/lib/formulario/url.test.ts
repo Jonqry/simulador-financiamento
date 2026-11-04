@@ -8,12 +8,20 @@ describe('lerDaUrl', () => {
   })
 
   it('lê todos os campos e formata em padrão brasileiro', () => {
-    expect(lerDaUrl('?valor=550000&entrada=110000.5&taxa=10.25&prazo=420&renda=20000')).toEqual({
+    expect(
+      lerDaUrl('?valor=550000&entrada=110000.5&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&extra=20000&mesExtra=24&repetir=24'),
+    ).toEqual({
       valorImovel: '550.000',
       entrada: '110.000,5',
       taxaAnual: '10,25',
       prazoMeses: '420',
       rendaMensal: '20.000',
+      mipMensal: '0,03',
+      dfiMensal: '0,0075',
+      taxaAdministracao: '30',
+      extraValor: '20.000',
+      extraMes: '24',
+      extraIntervalo: '24',
     })
   })
 
@@ -32,13 +40,25 @@ describe('lerDaUrl', () => {
 
 describe('paraQueryString', () => {
   it('gera números em formato de máquina com nomes curtos', () => {
-    expect(paraQueryString(VALORES_PADRAO)).toBe('valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000')
+    expect(paraQueryString(VALORES_PADRAO)).toBe(
+      'valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&mip=0.025&dfi=0.01&adm=25',
+    )
   })
 
   it('omite campos que não são números', () => {
     expect(paraQueryString({ ...VALORES_PADRAO, entrada: 'abc', rendaMensal: '' })).toBe(
-      'valor=400000&taxa=11.49&prazo=360',
+      'valor=400000&taxa=11.49&prazo=360&mip=0.025&dfi=0.01&adm=25',
     )
+  })
+
+  it('sem valor extra, os campos de extra ficam fora do link', () => {
+    const query = paraQueryString({ ...VALORES_PADRAO, extraValor: '', extraMes: '12', extraIntervalo: '24' })
+    expect(query).not.toMatch(/extra|mesExtra|repetir/)
+  })
+
+  it('com valor extra, os campos de extra entram no link', () => {
+    const query = paraQueryString({ ...VALORES_PADRAO, extraValor: '20.000', extraMes: '12', extraIntervalo: '24' })
+    expect(query).toContain('extra=20000&mesExtra=12&repetir=24')
   })
 
   it('ida e volta: ler o que foi escrito devolve os mesmos valores', () => {

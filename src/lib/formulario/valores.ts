@@ -1,4 +1,5 @@
 import {
+  ENCARGOS_EXEMPLO,
   reaisParaCentavos,
   validarSimulacao,
   type CampoSimulacao,
@@ -16,28 +17,57 @@ import { formatarNumeroBR, parseNumeroBR } from './numero'
  */
 export type ValoresFormulario = Record<CampoSimulacao, string>
 
-/** Unidade em que cada campo é digitado (reais, % a.a. ou meses). */
-const VALORES_PADRAO_NUMERICOS: Record<CampoSimulacao, number> = {
-  valorImovel: 400_000,
-  entrada: 80_000,
-  taxaAnual: 11.49,
-  prazoMeses: 360,
-  rendaMensal: 15_000,
+/** Como cada campo é digitado e convertido. */
+type Unidade = 'reais' | 'percentual' | 'inteiro'
+
+interface ConfigCampo {
+  unidade: Unidade
+  /** Vazio é erro? Os opcionais vazios valem 0 (ou "não informado"). */
+  obrigatorio: boolean
+  /** Valor inicial, na unidade digitada. null = começa vazio. */
+  padrao: number | null
 }
 
-export const CAMPOS: readonly CampoSimulacao[] = ['valorImovel', 'entrada', 'taxaAnual', 'prazoMeses', 'rendaMensal']
+/** Uma tabela de configuração em vez de um if por campo: campo novo = uma linha aqui. */
+const CONFIG: Record<CampoSimulacao, ConfigCampo> = {
+  valorImovel: { unidade: 'reais', obrigatorio: true, padrao: 400_000 },
+  entrada: { unidade: 'reais', obrigatorio: true, padrao: 80_000 },
+  taxaAnual: { unidade: 'percentual', obrigatorio: true, padrao: 11.49 },
+  prazoMeses: { unidade: 'inteiro', obrigatorio: true, padrao: 360 },
+  rendaMensal: { unidade: 'reais', obrigatorio: true, padrao: 15_000 },
+  mipMensal: { unidade: 'percentual', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.mipMensal * 100 },
+  dfiMensal: { unidade: 'percentual', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.dfiMensal * 100 },
+  taxaAdministracao: { unidade: 'reais', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.taxaAdministracao / 100 },
+  extraValor: { unidade: 'reais', obrigatorio: false, padrao: null },
+  extraMes: { unidade: 'inteiro', obrigatorio: false, padrao: null },
+  extraIntervalo: { unidade: 'inteiro', obrigatorio: false, padrao: 0 },
+}
+
+export const CAMPOS = Object.keys(CONFIG) as readonly CampoSimulacao[]
+
+/** Campos de pagamento extra: só entram na URL quando há valor extra. */
+export const CAMPOS_EXTRA: readonly CampoSimulacao[] = ['extraValor', 'extraMes', 'extraIntervalo']
 
 export function formatarValor(campo: CampoSimulacao, valor: number): string {
-  return formatarNumeroBR(valor, campo === 'taxaAnual' ? 4 : 2)
+  return formatarNumeroBR(valor, CONFIG[campo].unidade === 'percentual' ? 4 : 2)
 }
 
 export const VALORES_PADRAO: ValoresFormulario = Object.fromEntries(
-  CAMPOS.map((campo) => [campo, formatarValor(campo, VALORES_PADRAO_NUMERICOS[campo])]),
+  CAMPOS.map((campo) => {
+    const padrao = CONFIG[campo].padrao
+    return [campo, padrao === null ? '' : formatarValor(campo, padrao)]
+  }),
 ) as ValoresFormulario
 
 export type ResultadoConversao =
   | { ok: true; entrada: EntradaSimulacao }
   | { ok: false; erros: ErrosSimulacao }
+
+function paraUnidadeDoCalculo(unidade: Unidade, numero: number): number {
+  if (unidade === 'reais') return reaisParaCentavos(numero)
+  if (unidade === 'percentual') return numero / 100
+  return numero
+}
 
 /**
  * Converte o texto do formulário na entrada do módulo de cálculo:
@@ -45,29 +75,29 @@ export type ResultadoConversao =
  * (entrada maior que o imóvel) saem no mesmo objeto, por campo.
  */
 export function converter(valores: ValoresFormulario): ResultadoConversao {
-  const numeros = {} as Record<CampoSimulacao, number>
+  const entrada: Partial<Record<CampoSimulacao, number>> = {}
   const errosFormato: ErrosSimulacao = {}
 
   for (const campo of CAMPOS) {
-    const numero = parseNumeroBR(valores[campo])
-    if (numero === null) {
-      errosFormato[campo] = valores[campo].trim() === '' ? 'Campo obrigatório.' : 'Digite um número válido.'
-      numeros[campo] = Number.NaN
-    } else {
-      numeros[campo] = numero
-    }
-  }
+    const { unidade, obrigatorio } = CONFIG[campo]
+    const texto = valores[campo]
+    const numero = parseNumeroBR(texto)
 
-  const entrada: EntradaSimulacao = {
-    valorImovel: Number.isFinite(numeros.valorImovel) ? reaisParaCentavos(numeros.valorImovel) : Number.NaN,
-    entrada: Number.isFinite(numeros.entrada) ? reaisParaCentavos(numeros.entrada) : Number.NaN,
-    taxaAnual: numeros.taxaAnual / 100,
-    prazoMeses: numeros.prazoMeses,
-    rendaMensal: Number.isFinite(numeros.rendaMensal) ? reaisParaCentavos(numeros.rendaMensal) : Number.NaN,
+    if (numero !== null) {
+      entrada[campo] = paraUnidadeDoCalculo(unidade, numero)
+    } else if (texto.trim() !== '') {
+      errosFormato[campo] = 'Digite um número válido.'
+      entrada[campo] = Number.NaN
+    } else if (obrigatorio) {
+      errosFormato[campo] = 'Campo obrigatório.'
+      entrada[campo] = Number.NaN
+    }
+    // Opcional vazio: fica de fora (o cálculo usa 0 / "não informado").
   }
 
   // O erro de formato tem prioridade: "Digite um número válido" é mais útil
   // que "Informe o valor do imóvel" quando a pessoa digitou "abc".
-  const erros = { ...validarSimulacao(entrada), ...errosFormato }
-  return Object.keys(erros).length > 0 ? { ok: false, erros } : { ok: true, entrada }
+  const entradaCompleta = entrada as EntradaSimulacao
+  const erros = { ...validarSimulacao(entradaCompleta), ...errosFormato }
+  return Object.keys(erros).length > 0 ? { ok: false, erros } : { ok: true, entrada: entradaCompleta }
 }

@@ -9,6 +9,12 @@ describe('VALORES_PADRAO', () => {
       taxaAnual: '11,49',
       prazoMeses: '360',
       rendaMensal: '15.000',
+      mipMensal: '0,025',
+      dfiMensal: '0,01',
+      taxaAdministracao: '25',
+      extraValor: '',
+      extraMes: '',
+      extraIntervalo: '0',
     })
   })
 })
@@ -24,7 +30,35 @@ describe('converter', () => {
       taxaAnual: expect.closeTo(0.1149, 10),
       prazoMeses: 360,
       rendaMensal: 15_000_00,
+      mipMensal: expect.closeTo(0.00025, 12),
+      dfiMensal: expect.closeTo(0.0001, 12),
+      taxaAdministracao: 25_00,
+      extraIntervalo: 0,
     })
+  })
+
+  it('campos opcionais vazios não são erro (seguros zerados, sem extra)', () => {
+    const resultado = converter({ ...VALORES_PADRAO, mipMensal: '', dfiMensal: '', taxaAdministracao: '' })
+    expect(resultado.ok).toBe(true)
+  })
+
+  it('campo opcional com texto inválido é erro', () => {
+    expect(converter({ ...VALORES_PADRAO, mipMensal: 'x' })).toEqual({
+      ok: false,
+      erros: { mipMensal: 'Digite um número válido.' },
+    })
+  })
+
+  it('valor extra sem mês pede o mês', () => {
+    expect(converter({ ...VALORES_PADRAO, extraValor: '20.000' })).toEqual({
+      ok: false,
+      erros: { extraMes: 'Informe um mês entre 1 e 360.' },
+    })
+  })
+
+  it('converte o pagamento extra', () => {
+    const resultado = converter({ ...VALORES_PADRAO, extraValor: '20.000', extraMes: '24', extraIntervalo: '24' })
+    expect(resultado.ok && resultado.entrada).toMatchObject({ extraValor: 20_000_00, extraMes: 24, extraIntervalo: 24 })
   })
 
   it('aceita centavos digitados', () => {

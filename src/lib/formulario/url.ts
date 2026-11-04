@@ -1,6 +1,6 @@
 import type { CampoSimulacao } from '../financiamento'
 import { parseNumeroBR } from './numero'
-import { CAMPOS, formatarValor, VALORES_PADRAO, type ValoresFormulario } from './valores'
+import { CAMPOS, CAMPOS_EXTRA, formatarValor, VALORES_PADRAO, type ValoresFormulario } from './valores'
 
 /**
  * Nome curto de cada campo na URL. Curto e em português para o link ficar
@@ -13,6 +13,12 @@ export const PARAMETROS_URL: Record<CampoSimulacao, string> = {
   taxaAnual: 'taxa',
   prazoMeses: 'prazo',
   rendaMensal: 'renda',
+  mipMensal: 'mip',
+  dfiMensal: 'dfi',
+  taxaAdministracao: 'adm',
+  extraValor: 'extra',
+  extraMes: 'mesExtra',
+  extraIntervalo: 'repetir',
 }
 
 /**
@@ -44,10 +50,13 @@ export function lerDaUrl(search: string): ValoresFormulario {
 /**
  * Gera a query string (sem "?") a partir do formulário. Campos que não são
  * números ficam de fora: não faz sentido compartilhar um valor inválido.
+ * Os campos de pagamento extra só entram quando há valor extra.
  */
 export function paraQueryString(valores: ValoresFormulario): string {
   const params = new URLSearchParams()
+  const temExtra = (parseNumeroBR(valores.extraValor) ?? 0) > 0
   for (const campo of CAMPOS) {
+    if (!temExtra && CAMPOS_EXTRA.includes(campo)) continue
     const numero = parseNumeroBR(valores[campo])
     if (numero !== null) {
       params.set(PARAMETROS_URL[campo], String(numero))

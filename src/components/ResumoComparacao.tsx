@@ -1,4 +1,10 @@
-import { formatarBRL, type ResultadoSimulacao, type ResultadoSistema, type Sistema } from '../lib/financiamento'
+import {
+  formatarBRL,
+  formatarPercentual,
+  type ResultadoSimulacao,
+  type ResultadoSistema,
+  type Sistema,
+} from '../lib/financiamento'
 import { AlertaRenda } from './AlertaRenda'
 
 const DESCRICAO: Record<Sistema, string> = {
@@ -6,20 +12,24 @@ const DESCRICAO: Record<Sistema, string> = {
   PRICE: 'Parcelas fixas',
 }
 
-function Linha({ rotulo, valor, destaque = false }: { rotulo: string; valor: number; destaque?: boolean }) {
+function Linha({ rotulo, valor, destaque = false, dica }: { rotulo: string; valor: string; destaque?: boolean; dica?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <dt className="text-sm text-slate-600">{rotulo}</dt>
-      <dd className={`tabular-nums ${destaque ? 'text-xl font-semibold text-slate-900' : 'text-slate-900'}`}>
-        {formatarBRL(valor)}
+      <dt className="text-sm text-slate-600">
+        {rotulo}
+        {dica && <span className="block text-xs text-slate-500">{dica}</span>}
+      </dt>
+      <dd className={`text-right tabular-nums ${destaque ? 'text-xl font-semibold text-slate-900' : 'text-slate-900'}`}>
+        {valor}
       </dd>
     </div>
   )
 }
 
 function CartaoSistema({ sistema, dados }: { sistema: Sistema; dados: ResultadoSistema }) {
-  const { resumo, comprometimento, parcelas } = dados
-  const maiorPrestacao = Math.max(...parcelas.map((p) => p.prestacao))
+  const { resumo, custos, comprometimento, parcelas } = dados
+  const maiorParcela = Math.max(...parcelas.map((p) => p.total))
+  const encargosPrimeira = custos.primeiraParcela - resumo.primeiraPrestacao
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -29,19 +39,26 @@ function CartaoSistema({ sistema, dados }: { sistema: Sistema; dados: ResultadoS
         <span className="text-sm text-slate-500">· {DESCRICAO[sistema]}</span>
       </header>
       <dl className="space-y-1.5">
-        <Linha rotulo="1ª parcela" valor={resumo.primeiraPrestacao} destaque />
-        <Linha rotulo="Última parcela" valor={resumo.ultimaPrestacao} />
-        <Linha rotulo="Total de juros" valor={resumo.totalJuros} />
-        <Linha rotulo="Total pago" valor={resumo.totalPago} />
+        <Linha
+          rotulo="1ª parcela"
+          valor={formatarBRL(custos.primeiraParcela)}
+          destaque
+          dica={encargosPrimeira > 0 ? `inclui ${formatarBRL(encargosPrimeira)} de seguros e taxa` : undefined}
+        />
+        <Linha rotulo="Última parcela" valor={formatarBRL(custos.ultimaParcela)} />
+        <Linha rotulo="Total de juros" valor={formatarBRL(resumo.totalJuros)} />
+        <Linha rotulo="Seguros e taxa" valor={formatarBRL(custos.totalSeguros + custos.totalTaxaAdministracao)} />
+        <Linha rotulo="Total pago" valor={formatarBRL(custos.totalPago)} />
+        <Linha rotulo="CET estimado" valor={`${formatarPercentual(custos.cetAnual)} ao ano`} />
       </dl>
-      <AlertaRenda comprometimento={comprometimento} maiorPrestacao={maiorPrestacao} />
+      <AlertaRenda comprometimento={comprometimento} maiorPrestacao={maiorParcela} />
     </article>
   )
 }
 
 /** Manchete + um cartão por sistema. */
 export function ResumoComparacao({ resultado }: { resultado: ResultadoSimulacao }) {
-  const { economiaJurosSac, diferencaPrimeiraParcela } = resultado.comparacao
+  const { economiaTotalSac, diferencaPrimeiraParcela } = resultado.comparacao
 
   return (
     <section aria-labelledby="titulo-comparacao" className="space-y-4">
@@ -49,20 +66,26 @@ export function ResumoComparacao({ resultado }: { resultado: ResultadoSimulacao 
         <h2 id="titulo-comparacao" className="text-lg font-semibold text-slate-900">
           SAC × PRICE
         </h2>
-        {economiaJurosSac > 0 ? (
+        {economiaTotalSac > 0 ? (
           <p className="mt-1 text-slate-700">
-            No SAC você paga <strong className="tabular-nums">{formatarBRL(economiaJurosSac)}</strong> a menos de
-            juros, mas a primeira parcela é{' '}
+            No SAC você paga <strong className="tabular-nums">{formatarBRL(economiaTotalSac)}</strong> a menos no
+            total, mas a primeira parcela é{' '}
             <strong className="tabular-nums">{formatarBRL(diferencaPrimeiraParcela)}</strong> maior.
           </p>
         ) : (
-          <p className="mt-1 text-slate-700">Sem juros, os dois sistemas custam o mesmo no total.</p>
+          <p className="mt-1 text-slate-700">Sem juros, os dois sistemas custam praticamente o mesmo no total.</p>
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CartaoSistema sistema="SAC" dados={resultado.sac} />
         <CartaoSistema sistema="PRICE" dados={resultado.price} />
       </div>
+      {resultado.price.custos.cetAnual < resultado.sac.custos.cetAnual && economiaTotalSac > 0 && (
+        <p className="text-xs text-slate-500">
+          Por que o CET da PRICE é menor se ela custa mais? CET é uma taxa, não um total: o seguro DFI e a taxa são
+          valores fixos e pesam menos, em proporção, sobre uma dívida que cai devagar.
+        </p>
+      )}
     </section>
   )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calcularPRICE, calcularSAC } from './financiamento'
+import { aplicarEncargos, calcularPRICE, calcularSAC } from './financiamento'
 import { dadosComposicao, dadosSaldo, marcasAnuais, rotuloMes } from './graficos'
 
 const PARAMS = { principal: 1_000_00, taxaMensal: 0.01, prazoMeses: 3 }
@@ -21,11 +21,16 @@ describe('dadosSaldo', () => {
 })
 
 describe('dadosComposicao', () => {
-  it('separa juros e amortização por mês', () => {
-    expect(dadosComposicao(calcularSAC(PARAMS))).toEqual([
-      { mes: 1, juros: 1000, amortizacao: 33333 },
-      { mes: 2, juros: 667, amortizacao: 33333 },
-      { mes: 3, juros: 333, amortizacao: 33334 },
+  it('separa juros, amortização e encargos por mês', () => {
+    const tabela = aplicarEncargos(calcularSAC(PARAMS), PARAMS.principal, 2_000_00, {
+      mipMensal: 0.01,
+      dfiMensal: 0.005,
+      taxaAdministracao: 2_00,
+    })
+    expect(dadosComposicao(tabela)).toEqual([
+      { mes: 1, juros: 1000, amortizacao: 33333, encargos: 1000 + 1000 + 200 },
+      { mes: 2, juros: 667, amortizacao: 33333, encargos: 667 + 1000 + 200 },
+      { mes: 3, juros: 333, amortizacao: 33334, encargos: 333 + 1000 + 200 },
     ])
   })
 })

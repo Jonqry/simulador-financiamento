@@ -1,4 +1,4 @@
-import type { Centavos, Parcela } from './financiamento'
+import type { Centavos, Parcela, ParcelaSimulada } from './financiamento'
 
 export interface PontoSaldo {
   mes: number
@@ -24,11 +24,18 @@ export interface PontoComposicao {
   mes: number
   juros: Centavos
   amortizacao: Centavos
+  /** Seguros (MIP + DFI) + taxa de administração. */
+  encargos: Centavos
 }
 
-/** Separa juros e amortização de cada parcela para o gráfico de áreas empilhadas. */
-export function dadosComposicao(parcelas: Parcela[]): PontoComposicao[] {
-  return parcelas.map(({ numero, juros, amortizacao }) => ({ mes: numero, juros, amortizacao }))
+/** Separa cada parcela em amortização, juros e encargos para as áreas empilhadas. */
+export function dadosComposicao(parcelas: ParcelaSimulada[]): PontoComposicao[] {
+  return parcelas.map(({ numero, juros, amortizacao, mip, dfi, taxaAdministracao }) => ({
+    mes: numero,
+    juros,
+    amortizacao,
+    encargos: mip + dfi + taxaAdministracao,
+  }))
 }
 
 /** Marcas do eixo X a cada N anos: [0, 60, 120, ...] meses. */

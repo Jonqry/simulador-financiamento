@@ -117,3 +117,110 @@ describe('resumir', () => {
     expect(() => resumir([])).toThrow(RangeError)
   })
 })
+
+describe('simular com seguros, taxa e amortização extra', () => {
+  // Valores conferidos com implementação independente em Python
+  // (scratch: CET por método da secante, não bissecção).
+  const COMPLETA: EntradaSimulacao = {
+    ...ENTRADA,
+    mipMensal: 0.00025,
+    dfiMensal: 0.0001,
+    taxaAdministracao: 25_00,
+  }
+  const r = simular(COMPLETA)
+
+  it('a parcela total soma juros, amortização, MIP, DFI e taxa', () => {
+    // SAC: 3.802,46 + MIP 80,00 (320 mil × 0,025%) + DFI 40,00 (400 mil × 0,01%) + 25,00
+    expect(r.sac.custos.primeiraParcela).toBe(3_947_46)
+    expect(r.price.custos.primeiraParcela).toBe(3_174_53)
+    expect(r.sac.custos.ultimaParcela).toBe(965_42)
+    expect(r.price.custos.ultimaParcela).toBe(3_106_13)
+  })
+
+  it('totais pagos com encargos', () => {
+    expect(r.sac.custos.totalPago).toBe(883_745_89)
+    expect(r.price.custos.totalPago).toBe(1_135_201_66)
+    expect(r.comparacao.economiaTotalSac).toBe(1_135_201_66 - 883_745_89)
+  })
+
+  it('seguros e taxa somados batem com total pago menos prestações', () => {
+    for (const s of [r.sac, r.price]) {
+      expect(s.custos.totalSeguros + s.custos.totalTaxaAdministracao).toBe(s.custos.totalPago - s.resumo.totalPago)
+      expect(s.custos.totalTaxaAdministracao).toBe(360 * 25_00)
+    }
+  })
+
+  it('CET: acima dos juros nos dois; na PRICE é menor que no SAC, mesmo custando mais no total', () => {
+    expect(r.sac.custos.cetAnual).toBeCloseTo(0.121853, 5)
+    expect(r.price.custos.cetAnual).toBeCloseTo(0.121188, 5)
+    // Seguro DFI e taxa são fixos: com a dívida alta por mais tempo (PRICE),
+    // pesam menos em proporção. CET é taxa, não total.
+    expect(r.price.custos.cetAnual).toBeLessThan(r.sac.custos.cetAnual)
+    expect(r.price.custos.totalPago).toBeGreaterThan(r.sac.custos.totalPago)
+  })
+
+  it('o comprometimento de renda usa a parcela total', () => {
+    expect(r.sac.comprometimento.percentual).toBeCloseTo(3_947_46 / 15_000_00, 12)
+  })
+
+  it('sem extra informado, não calcula a comparação de extra', () => {
+    expect(r.amortizacaoExtra).toBeUndefined()
+  })
+
+  describe('FGTS de R$ 20 mil a cada 24 meses', () => {
+    const { amortizacaoExtra: extra } = simular({ ...COMPLETA, extraValor: 20_000_00, extraMes: 24, extraIntervalo: 24 })
+
+    it('reduzir prazo: termina antes e economiza mais', () => {
+      expect(extra?.SAC.prazo).toMatchObject({ prazoFinal: 192, totalJuros: 288_639_76, economia: 254_700_79, parcelaApos: 3_560_79 })
+      expect(extra?.PRICE.prazo).toMatchObject({ prazoFinal: 168, totalJuros: 308_282_63, economia: 487_534_31, parcelaApos: 3_168_76 })
+    })
+
+    it('reduzir parcela: parcela menor, economia menor', () => {
+      expect(extra?.SAC.parcela).toMatchObject({ prazoFinal: 240, totalJuros: 322_993_54, economia: 216_283_76, parcelaApos: 3_501_27 })
+      expect(extra?.PRICE.parcela).toMatchObject({ prazoFinal: 312, totalJuros: 472_014_59, economia: 309_946_66, parcelaApos: 2_977_57 })
+    })
+
+    it('em ambos os sistemas, reduzir prazo economiza mais que reduzir parcela', () => {
+      for (const sistema of ['SAC', 'PRICE'] as const) {
+        expect(extra![sistema].prazo.economia).toBeGreaterThan(extra![sistema].parcela.economia)
+        expect(extra![sistema].parcela.parcelaApos).toBeLessThan(extra![sistema].prazo.parcelaApos)
+      }
+    })
+
+    it('soma dos extras pagos', () => {
+      // No modo prazo do SAC o contrato acaba no mês 192: extras nos meses 24, 48, ..., 192 = 8 × R$ 20 mil,
+      // mas o último pode ser parcial se o saldo já for menor.
+      expect(extra!.SAC.prazo.totalExtras).toBeLessThanOrEqual(8 * 20_000_00)
+      expect(extra!.SAC.prazo.totalExtras).toBeGreaterThan(7 * 20_000_00)
+    })
+  })
+
+  it('um extra que quita tudo deixa parcelaApos = 0', () => {
+    const { amortizacaoExtra: extra } = simular({ ...COMPLETA, extraValor: 1_000_000_00, extraMes: 12 })
+    expect(extra?.SAC.prazo).toMatchObject({ prazoFinal: 12, parcelaApos: 0 })
+  })
+})
+
+describe('validarSimulacao: seguros e extra', () => {
+  it.each([
+    [{ mipMensal: -0.0001 }, 'mipMensal', 'Use um valor entre 0% e 1% ao mês.'],
+    [{ dfiMensal: 0.02 }, 'dfiMensal', 'Use um valor entre 0% e 1% ao mês.'],
+    [{ taxaAdministracao: -1 }, 'taxaAdministracao', 'A taxa não pode ser negativa.'],
+    [{ extraValor: -1 }, 'extraValor', 'O valor extra não pode ser negativo.'],
+    [{ extraValor: 100, extraMes: 0 }, 'extraMes', 'Informe um mês entre 1 e 360.'],
+    [{ extraValor: 100, extraMes: 361 }, 'extraMes', 'Informe um mês entre 1 e 360.'],
+    [{ extraValor: 100, extraMes: 12, extraIntervalo: -24 }, 'extraIntervalo', 'Intervalo inválido.'],
+  ] as const)('%o → erro em %s', (alteracao, campo, mensagem) => {
+    expect(validarSimulacao({ ...ENTRADA, ...alteracao })).toEqual({ [campo]: mensagem })
+  })
+
+  it('com prazo inválido, não acusa também o mês do extra', () => {
+    expect(validarSimulacao({ ...ENTRADA, prazoMeses: 0, extraValor: 100, extraMes: 12 })).toEqual({
+      prazoMeses: 'O prazo deve ser de 1 a 420 meses.',
+    })
+  })
+
+  it('extra zero ignora mês e intervalo', () => {
+    expect(validarSimulacao({ ...ENTRADA, extraValor: 0, extraMes: Number.NaN, extraIntervalo: -5 })).toEqual({})
+  })
+})
