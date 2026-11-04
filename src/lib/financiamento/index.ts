@@ -1,0 +1,9 @@
+// API pública do módulo de cálculo. A UI importa só daqui.
+export * from './dinheiro'
+export * from './price'
+export * from './renda'
+export * from './sac'
+export * from './simulacao'
+export * from './taxas'
+export type * from './tipos'
+export { PRAZO_MAXIMO_MESES } from './validacao'
