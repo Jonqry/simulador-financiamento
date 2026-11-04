@@ -56,7 +56,7 @@ export default function App() {
             <ResumoComparacao resultado={resultado} />
 
             <Painel titulo="Até quanto esse cliente pode comprar?">
-              <PainelCapacidade capacidade={resultado.capacidade} entrada={resultado.entrada} />
+              <PainelCapacidade capacidade={resultado.capacidade} entrada={resultado.entrada} cota={resultado.cotaFinanciamento} />
             </Painel>
 
             {resultado.amortizacaoExtra && (
@@ -107,11 +107,42 @@ export default function App() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-500">
-        Simulação educativa: seguros e taxa usam os valores informados, e o cálculo não inclui correção pela TR nem
-        custos de contratação (avaliação, registro, ITBI). Os valores reais dependem das condições de cada banco.{' '}
-        <a className="underline hover:text-slate-700" href="https://github.com/Jonqry/simulador-financiamento">
-          Código no GitHub
-        </a>
+        <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-700">
+            Feito por <strong className="font-semibold text-slate-900">João Victor</strong>, corretor de imóveis e
+            desenvolvedor front-end.
+          </p>
+          <nav aria-label="Contato" className="flex gap-4 text-sm font-medium">
+            <a
+              className="text-sac underline-offset-2 hover:underline"
+              href="https://www.linkedin.com/in/joaovictorvarela/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              LinkedIn
+            </a>
+            <a
+              className="text-sac underline-offset-2 hover:underline"
+              href="https://github.com/Jonqry"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+            </a>
+            <a
+              className="text-sac underline-offset-2 hover:underline"
+              href="https://github.com/Jonqry/simulador-financiamento"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Código
+            </a>
+          </nav>
+        </div>
+        <p className="mt-4">
+          Simulação educativa: seguros e taxa usam os valores informados, e o cálculo não inclui correção pela TR nem
+          custos de contratação (avaliação, registro, ITBI). Os valores reais dependem das condições de cada banco.
+        </p>
       </footer>
     </div>
   )

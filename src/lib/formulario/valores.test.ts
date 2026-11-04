@@ -4,14 +4,15 @@ import { converter, VALORES_PADRAO, type ValoresFormulario } from './valores'
 describe('VALORES_PADRAO', () => {
   it('vem formatado em padrão brasileiro', () => {
     expect(VALORES_PADRAO).toEqual({
-      valorImovel: '400.000',
-      entrada: '80.000',
-      taxaAnual: '11,49',
-      prazoMeses: '360',
-      rendaMensal: '15.000',
+      valorImovel: '250.000',
+      entrada: '50.000',
+      taxaAnual: '8,16',
+      prazoMeses: '420',
+      rendaMensal: '6.000',
       mipMensal: '0,025',
       dfiMensal: '0,01',
       taxaAdministracao: '25',
+      cotaFinanciamento: '80',
       extraValor: '',
       extraMes: '',
       extraIntervalo: '0',
@@ -25,14 +26,15 @@ describe('converter', () => {
     expect(resultado.ok).toBe(true)
     if (!resultado.ok) return
     expect(resultado.entrada).toEqual({
-      valorImovel: 400_000_00,
-      entrada: 80_000_00,
-      taxaAnual: expect.closeTo(0.1149, 10),
-      prazoMeses: 360,
-      rendaMensal: 15_000_00,
+      valorImovel: 250_000_00,
+      entrada: 50_000_00,
+      taxaAnual: expect.closeTo(0.0816, 10),
+      prazoMeses: 420,
+      rendaMensal: 6_000_00,
       mipMensal: expect.closeTo(0.00025, 12),
       dfiMensal: expect.closeTo(0.0001, 12),
       taxaAdministracao: 25_00,
+      cotaFinanciamento: expect.closeTo(0.8, 12),
       extraIntervalo: 0,
     })
   })
@@ -40,6 +42,14 @@ describe('converter', () => {
   it('campos opcionais vazios não são erro (seguros zerados, sem extra)', () => {
     const resultado = converter({ ...VALORES_PADRAO, mipMensal: '', dfiMensal: '', taxaAdministracao: '' })
     expect(resultado.ok).toBe(true)
+  })
+
+  it('cota vazia vale 80%; cota fora de 10% a 90% é erro', () => {
+    expect(converter({ ...VALORES_PADRAO, cotaFinanciamento: '' }).ok).toBe(true)
+    expect(converter({ ...VALORES_PADRAO, cotaFinanciamento: '95' })).toEqual({
+      ok: false,
+      erros: { cotaFinanciamento: 'Use um valor entre 10% e 90%.' },
+    })
   })
 
   it('campo opcional com texto inválido é erro', () => {
@@ -52,7 +62,7 @@ describe('converter', () => {
   it('valor extra sem mês pede o mês', () => {
     expect(converter({ ...VALORES_PADRAO, extraValor: '20.000' })).toEqual({
       ok: false,
-      erros: { extraMes: 'Informe um mês entre 1 e 360.' },
+      erros: { extraMes: 'Informe um mês entre 1 e 420.' },
     })
   })
 
@@ -80,7 +90,7 @@ describe('converter', () => {
   })
 
   it('repassa os erros de regra do módulo de cálculo', () => {
-    const resultado = converter({ ...VALORES_PADRAO, entrada: '400.000', prazoMeses: '500' })
+    const resultado = converter({ ...VALORES_PADRAO, entrada: '250.000', prazoMeses: '500' })
     expect(resultado).toEqual({
       ok: false,
       erros: {

@@ -13,8 +13,12 @@ beforeAll(() => {
   }
 })
 
+// Os testes abrem um link explícito em vez de depender do cenário padrão:
+// mudar os valores iniciais do formulário não deve quebrar testes de comportamento.
+const LINK_BASE = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000'
+
 beforeEach(() => {
-  window.history.replaceState(null, '', '/')
+  window.history.replaceState(null, '', LINK_BASE)
 })
 
 afterEach(cleanup)
@@ -23,7 +27,21 @@ afterEach(cleanup)
 const texto = (el: HTMLElement) => el.textContent?.replace(/\s/g, ' ')
 
 describe('App', () => {
-  it('abre com os valores padrão e mostra a comparação, já com seguros e taxa', () => {
+  it('sem parâmetros na URL, abre num cenário típico do MCMV', () => {
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    expect(screen.getByLabelText('Valor do imóvel')).toHaveProperty('value', '250.000')
+    expect(screen.getByLabelText('Prazo')).toHaveProperty('value', '420')
+    // Valores conferidos com implementação independente em Python.
+    const sac = screen.getByRole('heading', { name: 'SAC', level: 3 }).closest('article')!
+    expect(texto(sac)).toContain('R$ 1.887,83')
+    expect(within(sac).getByText('Acima do limite')).toBeTruthy()
+    const price = screen.getByRole('heading', { name: 'Tabela PRICE' }).closest('article')!
+    expect(texto(price)).toContain('R$ 1.501,65')
+    expect(screen.getByText(/Faixa 3/)).toBeTruthy()
+  })
+
+  it('abre um link com os valores e mostra a comparação, já com seguros e taxa', () => {
     render(<App />)
     expect(screen.getByLabelText('Valor do imóvel')).toHaveProperty('value', '400.000')
     const sac = screen.getByRole('heading', { name: 'SAC', level: 3 }).closest('article')!
@@ -82,7 +100,7 @@ describe('App', () => {
     render(<App />)
     expect(screen.getByLabelText('Valor do imóvel')).toHaveProperty('value', '300.000')
     expect(screen.getByLabelText('Prazo')).toHaveProperty('value', '240')
-    expect(screen.getByText('20 anos')).toBeTruthy()
+    expect(screen.getByText(/^20 anos ·/)).toBeTruthy()
   })
 
   it('atualiza a URL enquanto o usuário digita', async () => {
@@ -182,8 +200,42 @@ describe('App', () => {
 
   it('tem um glossário com os termos usados', () => {
     render(<App />)
-    expect(screen.getByText('Entenda os termos')).toBeTruthy()
-    expect(screen.getByText('Cota de financiamento')).toBeTruthy()
+    const glossario = screen.getByText('Entenda os termos').closest('details')!
+    expect(within(glossario).getByText('Cota de financiamento')).toBeTruthy()
+    expect(within(glossario).getByText('CET')).toBeTruthy()
+  })
+
+  it('cota de financiamento editável muda o imóvel máximo', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    const painel = () => screen.getByRole('heading', { name: /Até quanto esse cliente pode comprar/ }).closest('section')!
+    expect(texto(painel())).toContain('R$ 250.000,00') // PRICE limitado pela entrada (80%)
+
+    const cota = screen.getByLabelText('Cota de financiamento')
+    await user.clear(cota)
+    await user.type(cota, '90')
+    expect(texto(painel())).toContain('R$ 290.546,75') // agora quem limita é a renda
+    expect(texto(painel())).not.toContain('R$ 250.000,00')
+    expect(window.location.search).toContain('cota=90')
+  })
+
+  it('avisa quando a entrada está abaixo do mínimo pela cota', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    const entrada = screen.getByLabelText('Entrada')
+    await user.clear(entrada)
+    await user.type(entrada, '30000')
+    // A Testing Library normaliza espaços (inclusive o espaço especial do "R$").
+    expect(screen.getByText('Atenção: com cota de 80%, a entrada mínima é R$ 50.000,00.')).toBeTruthy()
+  })
+
+  it('o rodapé mostra o autor com links para LinkedIn e GitHub', () => {
+    render(<App />)
+    const contato = screen.getByRole('navigation', { name: 'Contato' })
+    expect(within(contato).getByRole('link', { name: 'LinkedIn' }).getAttribute('href')).toContain('linkedin.com/in/')
+    expect(within(contato).getByRole('link', { name: 'GitHub' }).getAttribute('href')).toBe('https://github.com/Jonqry')
   })
 
   it('copia o link da simulação', async () => {

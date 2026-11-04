@@ -65,7 +65,8 @@ test('um link compartilhado reproduz a simulação', async ({ page }) => {
 test('link quebrado ou editado à mão não quebra a tela', async ({ page }) => {
   await page.goto('/?valor=abc&prazo=999&utm_source=whatsapp')
 
-  await expect(page.getByLabel('Valor do imóvel')).toHaveValue('400.000')
+  // valor=abc cai no padrão (cenário MCMV: R$ 250 mil).
+  await expect(page.getByLabel('Valor do imóvel')).toHaveValue('250.000')
   await expect(page.getByText('O prazo deve ser de 1 a 420 meses.')).toBeVisible()
 })
 
@@ -93,6 +94,13 @@ test('copia o link da simulação', async ({ page, context, browserName }) => {
   await expect(page.getByRole('button', { name: 'Link copiado!' })).toBeVisible()
   const copiado = await page.evaluate(() => navigator.clipboard.readText())
   expect(copiado).toContain('valor=400000')
+})
+
+test('rodapé com o autor e links de contato', async ({ page }) => {
+  await page.goto('/')
+  const contato = page.getByRole('navigation', { name: 'Contato' })
+  await expect(contato.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute('href', /linkedin\.com\/in\//)
+  await expect(contato.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/Jonqry')
 })
 
 test('tem as tags de prévia para WhatsApp/LinkedIn', async ({ page, request }) => {

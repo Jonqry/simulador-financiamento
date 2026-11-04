@@ -1,17 +1,18 @@
-import { COTA_FINANCIAMENTO_PADRAO, formatarBRL, formatarPercentual, type Capacidade, type Sistema } from '../lib/financiamento'
+import { formatarBRL, formatarPercentual, type Capacidade, type Sistema } from '../lib/financiamento'
 
 interface PainelCapacidadeProps {
   capacidade: Record<Sistema, Capacidade>
   entrada: number
+  cota: number
 }
 
-function Explicacao({ capacidade, entrada }: { capacidade: Capacidade; entrada: number }) {
+function Explicacao({ capacidade, entrada, cota }: { capacidade: Capacidade; entrada: number; cota: number }) {
   if (capacidade.limitadoPor === 'entrada') {
     return entrada === 0 ? (
-      <>Sem entrada não dá para financiar: o banco cobre até {formatarPercentual(COTA_FINANCIAMENTO_PADRAO)} do imóvel.</>
+      <>Sem entrada não dá para financiar: o banco cobre até {formatarPercentual(cota)} do imóvel.</>
     ) : (
       <>
-        Quem limita é a <strong>entrada</strong>: o banco financia até {formatarPercentual(COTA_FINANCIAMENTO_PADRAO)} do
+        Quem limita é a <strong>entrada</strong>: o banco financia até {formatarPercentual(cota)} do
         imóvel. A renda permitiria mais.
       </>
     )
@@ -28,7 +29,7 @@ function Explicacao({ capacidade, entrada }: { capacidade: Capacidade; entrada: 
  * "Até quanto posso mostrar para esse cliente?" Usa a renda, a entrada, a taxa,
  * o prazo e os encargos do formulário; ignora o valor do imóvel digitado.
  */
-export function PainelCapacidade({ capacidade, entrada }: PainelCapacidadeProps) {
+export function PainelCapacidade({ capacidade, entrada, cota }: PainelCapacidadeProps) {
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -45,13 +46,13 @@ export function PainelCapacidade({ capacidade, entrada }: PainelCapacidadeProps)
               financiando {formatarBRL(capacidade[sistema].financiamentoMaximo)} + entrada de {formatarBRL(entrada)}
             </p>
             <p className="mt-2 text-sm text-slate-700">
-              <Explicacao capacidade={capacidade[sistema]} entrada={entrada} />
+              <Explicacao capacidade={capacidade[sistema]} entrada={entrada} cota={cota} />
             </p>
           </div>
         ))}
       </div>
       <p className="text-xs text-slate-500">
-        Considera a renda, a entrada, a taxa, o prazo, os seguros e a taxa informados acima. Cada banco tem sua política
+        Considera a renda, a entrada, a taxa, o prazo e as condições do banco informadas no formulário. Cada banco tem sua política
         de crédito: é uma estimativa para orientar a busca, não uma aprovação.
       </p>
     </div>

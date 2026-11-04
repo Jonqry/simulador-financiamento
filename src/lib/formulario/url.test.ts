@@ -9,7 +9,7 @@ describe('lerDaUrl', () => {
 
   it('lê todos os campos e formata em padrão brasileiro', () => {
     expect(
-      lerDaUrl('?valor=550000&entrada=110000.5&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&extra=20000&mesExtra=24&repetir=24'),
+      lerDaUrl('?valor=550000&entrada=110000.5&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&cota=90&extra=20000&mesExtra=24&repetir=24'),
     ).toEqual({
       valorImovel: '550.000',
       entrada: '110.000,5',
@@ -19,6 +19,7 @@ describe('lerDaUrl', () => {
       mipMensal: '0,03',
       dfiMensal: '0,0075',
       taxaAdministracao: '30',
+      cotaFinanciamento: '90',
       extraValor: '20.000',
       extraMes: '24',
       extraIntervalo: '24',
@@ -41,13 +42,13 @@ describe('lerDaUrl', () => {
 describe('paraQueryString', () => {
   it('gera números em formato de máquina com nomes curtos', () => {
     expect(paraQueryString(VALORES_PADRAO)).toBe(
-      'valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&mip=0.025&dfi=0.01&adm=25',
+      'valor=250000&entrada=50000&taxa=8.16&prazo=420&renda=6000&mip=0.025&dfi=0.01&adm=25&cota=80',
     )
   })
 
   it('omite campos que não são números', () => {
     expect(paraQueryString({ ...VALORES_PADRAO, entrada: 'abc', rendaMensal: '' })).toBe(
-      'valor=400000&taxa=11.49&prazo=360&mip=0.025&dfi=0.01&adm=25',
+      'valor=250000&taxa=8.16&prazo=420&mip=0.025&dfi=0.01&adm=25&cota=80',
     )
   })
 

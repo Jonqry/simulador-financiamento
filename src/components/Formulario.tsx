@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
-import { formatarBRL, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
-import { parseNumeroBR } from '../lib/formulario/numero'
+import { formatarBRL, reaisParaCentavos, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
+import { formatarNumeroBR, parseNumeroBR } from '../lib/formulario/numero'
 import { converter, type ValoresFormulario } from '../lib/formulario/valores'
 import { gerarResumoCliente } from '../lib/resumoCliente'
 import { BotaoCompartilhar, BotaoCopiar } from './BotaoCompartilhar'
@@ -72,6 +72,20 @@ function textoResumo(valores: ValoresFormulario, resultado: ResultadoSimulacao):
   )
 }
 
+/** Mostra o valor financiado e avisa se a entrada está abaixo do mínimo pela cota. */
+function dicaEntrada(valores: ValoresFormulario, resultado: ResultadoSimulacao | null): string | undefined {
+  const valorImovel = parseNumeroBR(valores.valorImovel)
+  const entrada = parseNumeroBR(valores.entrada)
+  const cotaPercentual = parseNumeroBR(valores.cotaFinanciamento) ?? 80
+  if (valorImovel !== null && entrada !== null && cotaPercentual > 0 && cotaPercentual < 100) {
+    const entradaMinima = reaisParaCentavos(valorImovel * (1 - cotaPercentual / 100))
+    if (reaisParaCentavos(entrada) < entradaMinima) {
+      return `Atenção: com cota de ${formatarNumeroBR(cotaPercentual)}%, a entrada mínima é ${formatarBRL(entradaMinima)}.`
+    }
+  }
+  return resultado ? `Valor financiado: ${formatarBRL(resultado.valorFinanciado)}` : undefined
+}
+
 const OPCOES_REPETICAO = [
   { valor: '0', rotulo: 'Uma vez só' },
   { valor: '24', rotulo: 'A cada 2 anos (FGTS)' },
@@ -86,7 +100,7 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
     erro: erros[nome],
   })
 
-  const resumoEncargos = `MIP ${valores.mipMensal || '0'}% · DFI ${valores.dfiMensal || '0'}% · R$ ${valores.taxaAdministracao || '0'}`
+  const resumoCondicoes = `Financia até ${valores.cotaFinanciamento || '80'}% · MIP ${valores.mipMensal || '0'}% · DFI ${valores.dfiMensal || '0'}% · R$ ${valores.taxaAdministracao || '0'}`
   const temExtra = (parseNumeroBR(valores.extraValor) ?? 0) > 0
 
   return (
@@ -102,7 +116,7 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
         rotulo="Entrada"
         prefixo="R$"
         {...campo('entrada')}
-        dica={resultado ? `Valor financiado: ${formatarBRL(resultado.valorFinanciado)}` : undefined}
+        dica={dicaEntrada(valores, resultado)}
       />
       <Campo
         rotulo="Taxa de juros"
@@ -110,7 +124,12 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
         {...campo('taxaAnual')}
         dica="Taxa efetiva anual, como aparece na simulação do banco."
       />
-      <Campo rotulo="Prazo" sufixo="meses" {...campo('prazoMeses')} dica={dicaPrazo(valores.prazoMeses)} />
+      <Campo
+        rotulo="Prazo"
+        sufixo="meses"
+        {...campo('prazoMeses')}
+        dica={[dicaPrazo(valores.prazoMeses), 'Caixa e BB: até 420 meses (35 anos)'].filter(Boolean).join(' · ')}
+      />
       <Campo
         rotulo="Renda bruta mensal"
         prefixo="R$"
@@ -124,13 +143,20 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
       />
 
       <Secao
-        titulo="Seguros e taxa"
-        resumo={resumoEncargos}
-        temErro={Boolean(erros.mipMensal || erros.dfiMensal || erros.taxaAdministracao)}
+        titulo="Condições do banco"
+        resumo={resumoCondicoes}
+        temErro={Boolean(erros.cotaFinanciamento || erros.mipMensal || erros.dfiMensal || erros.taxaAdministracao)}
       >
         <p className="text-xs text-slate-600">
-          Valores de exemplo. O MIP varia com a idade; use os do seu contrato. Deixe em branco para ignorar.
+          Valores de exemplo; use os da proposta do banco. O MIP varia com a idade. Deixe seguros e taxa em branco para
+          ignorar.
         </p>
+        <Campo
+          rotulo="Cota de financiamento"
+          sufixo="% do imóvel"
+          {...campo('cotaFinanciamento')}
+          dica="Quanto do imóvel o banco financia. Comum: 80%. MCMV Faixa 4: 60% a 70%. Alguns bancos: até 90%."
+        />
         <Campo
           rotulo="Seguro MIP (morte e invalidez)"
           sufixo="% ao mês"

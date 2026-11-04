@@ -1,4 +1,5 @@
 import {
+  COTA_FINANCIAMENTO_PADRAO,
   ENCARGOS_EXEMPLO,
   reaisParaCentavos,
   validarSimulacao,
@@ -29,15 +30,20 @@ interface ConfigCampo {
 }
 
 /** Uma tabela de configuração em vez de um if por campo: campo novo = uma linha aqui. */
+// Cenário inicial típico do Minha Casa, Minha Vida (Faixa 3): imóvel de
+// R$ 250 mil com 20% de entrada, 35 anos, renda de R$ 6 mil e a taxa da
+// Faixa 3 para não cotista (8,16%). Nele o SAC passa de 30% da renda e a
+// PRICE cabe: o trade-off que o simulador existe para mostrar.
 const CONFIG: Record<CampoSimulacao, ConfigCampo> = {
-  valorImovel: { unidade: 'reais', obrigatorio: true, padrao: 400_000 },
-  entrada: { unidade: 'reais', obrigatorio: true, padrao: 80_000 },
-  taxaAnual: { unidade: 'percentual', obrigatorio: true, padrao: 11.49 },
-  prazoMeses: { unidade: 'inteiro', obrigatorio: true, padrao: 360 },
-  rendaMensal: { unidade: 'reais', obrigatorio: true, padrao: 15_000 },
+  valorImovel: { unidade: 'reais', obrigatorio: true, padrao: 250_000 },
+  entrada: { unidade: 'reais', obrigatorio: true, padrao: 50_000 },
+  taxaAnual: { unidade: 'percentual', obrigatorio: true, padrao: 8.16 },
+  prazoMeses: { unidade: 'inteiro', obrigatorio: true, padrao: 420 },
+  rendaMensal: { unidade: 'reais', obrigatorio: true, padrao: 6_000 },
   mipMensal: { unidade: 'percentual', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.mipMensal * 100 },
   dfiMensal: { unidade: 'percentual', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.dfiMensal * 100 },
   taxaAdministracao: { unidade: 'reais', obrigatorio: false, padrao: ENCARGOS_EXEMPLO.taxaAdministracao / 100 },
+  cotaFinanciamento: { unidade: 'percentual', obrigatorio: false, padrao: COTA_FINANCIAMENTO_PADRAO * 100 },
   extraValor: { unidade: 'reais', obrigatorio: false, padrao: null },
   extraMes: { unidade: 'inteiro', obrigatorio: false, padrao: null },
   extraIntervalo: { unidade: 'inteiro', obrigatorio: false, padrao: 0 },

@@ -1,4 +1,4 @@
-import { capacidadeDeCompra, type Capacidade } from './capacidade'
+import { capacidadeDeCompra, COTA_FINANCIAMENTO_PADRAO, type Capacidade } from './capacidade'
 import { calcularCetAnual } from './cet'
 import { aplicarEncargos, type ComEncargos, type Encargos } from './encargos'
 import { extrasRecorrentes, gerarTabela, type ModoAmortizacaoExtra, type ParcelaComExtra } from './motor'
@@ -31,6 +31,8 @@ export interface EntradaSimulacao {
   extraMes?: number
   /** Repetir o extra a cada N meses (24 = regra do FGTS). 0 = uma vez só. */
   extraIntervalo?: number
+  /** Parte máxima do imóvel que o banco financia (0.8 = 80%). Padrão: 80%. */
+  cotaFinanciamento?: Taxa
 }
 
 export type ParcelaSimulada = ComEncargos<Parcela>
@@ -72,6 +74,8 @@ export type ComparacaoExtra = Record<Sistema, Record<ModoAmortizacaoExtra, Resum
 
 export interface ResultadoSimulacao {
   entrada: Centavos
+  /** Cota de financiamento usada na capacidade de compra. */
+  cotaFinanciamento: Taxa
   valorFinanciado: Centavos
   taxaMensal: Taxa
   sac: ResultadoSistema
@@ -130,6 +134,11 @@ export function validarSimulacao(e: EntradaSimulacao): ErrosSimulacao {
   const taxaAdministracao = e.taxaAdministracao ?? 0
   if (!Number.isFinite(taxaAdministracao) || taxaAdministracao < 0) {
     erros.taxaAdministracao = 'A taxa não pode ser negativa.'
+  }
+
+  const cota = e.cotaFinanciamento ?? COTA_FINANCIAMENTO_PADRAO
+  if (!Number.isFinite(cota) || cota < 0.1 || cota > 0.9) {
+    erros.cotaFinanciamento = 'Use um valor entre 10% e 90%.'
   }
 
   const extraValor = e.extraValor ?? 0
@@ -262,12 +271,14 @@ export function simular(entrada: EntradaSimulacao): ResultadoSimulacao {
     taxaMensal,
     prazoMeses: entrada.prazoMeses,
     encargos,
+    cota: entrada.cotaFinanciamento ?? COTA_FINANCIAMENTO_PADRAO,
   }
   const sac = montarResultado(tabela('SAC'), valorFinanciado, entrada.rendaMensal)
   const price = montarResultado(tabela('PRICE'), valorFinanciado, entrada.rendaMensal)
 
   const resultado: ResultadoSimulacao = {
     entrada: entrada.entrada,
+    cotaFinanciamento: paramsCapacidade.cota,
     valorFinanciado,
     taxaMensal,
     sac,

@@ -201,8 +201,24 @@ describe('simular com seguros, taxa e amortização extra', () => {
   })
 })
 
+describe('cota de financiamento', () => {
+  it('padrão de 80%, refletida no resultado e na capacidade', () => {
+    const r = simular(ENTRADA)
+    expect(r.cotaFinanciamento).toBe(0.8)
+    expect(r.capacidade.SAC).toMatchObject({ valorMaximoImovel: 400_000_00, limitadoPor: 'entrada' })
+  })
+
+  it('cota maior permite imóvel maior quando a entrada é o limite', () => {
+    const r = simular({ ...ENTRADA, cotaFinanciamento: 0.9 })
+    expect(r.cotaFinanciamento).toBe(0.9)
+    expect(r.capacidade.SAC.valorMaximoImovel).toBeGreaterThan(400_000_00)
+  })
+})
+
 describe('validarSimulacao: seguros e extra', () => {
   it.each([
+    [{ cotaFinanciamento: 0.95 }, 'cotaFinanciamento', 'Use um valor entre 10% e 90%.'],
+    [{ cotaFinanciamento: 0.05 }, 'cotaFinanciamento', 'Use um valor entre 10% e 90%.'],
     [{ mipMensal: -0.0001 }, 'mipMensal', 'Use um valor entre 0% e 1% ao mês.'],
     [{ dfiMensal: 0.02 }, 'dfiMensal', 'Use um valor entre 0% e 1% ao mês.'],
     [{ taxaAdministracao: -1 }, 'taxaAdministracao', 'A taxa não pode ser negativa.'],
