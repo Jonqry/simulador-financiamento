@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { centavosParaReais, formatarBRL, formatarPercentual, reaisParaCentavos } from './dinheiro'
+import { centavosParaReais, formatarBRL, formatarBRLCompacto, formatarPercentual, reaisParaCentavos } from './dinheiro'
 
 // Intl usa espaço não separável (U+00A0) entre "R$" e o número.
 // Normalizamos para o teste não depender desse detalhe invisível.
@@ -44,6 +44,15 @@ describe('formatarBRL', () => {
 describe('formatarPercentual', () => {
   it('formata taxa decimal como percentual', () => {
     expect(normalizar(formatarPercentual(0.1149))).toBe('11,49%')
-    expect(normalizar(formatarPercentual(0.3))).toBe('30,0%')
+    expect(normalizar(formatarPercentual(0.3))).toBe('30%')
+    expect(normalizar(formatarPercentual(0.345678))).toBe('34,57%')
+  })
+})
+
+describe('formatarBRLCompacto', () => {
+  it('abrevia valores grandes para eixos de gráfico', () => {
+    expect(normalizar(formatarBRLCompacto(32_000_000))).toBe('R$ 320 mil')
+    expect(normalizar(formatarBRLCompacto(125_000_000))).toBe('R$ 1,3 mi')
+    expect(normalizar(formatarBRLCompacto(0))).toBe('R$ 0')
   })
 })

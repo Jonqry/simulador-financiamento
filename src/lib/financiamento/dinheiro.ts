@@ -24,11 +24,24 @@ export function formatarBRL(centavos: Centavos): string {
 
 const formatadorPercentual = new Intl.NumberFormat('pt-BR', {
   style: 'percent',
-  minimumFractionDigits: 1,
+  minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 })
 
 /** Formata uma taxa decimal como percentual: 0.1149 → "11,49%". */
 export function formatarPercentual(taxa: number): string {
   return formatadorPercentual.format(taxa)
+}
+
+const formatadorBRLCompacto = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  notation: 'compact',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+})
+
+/** Formato curto para eixos de gráfico: 32000000 → "R$ 320 mil". */
+export function formatarBRLCompacto(centavos: Centavos): string {
+  return formatadorBRLCompacto.format(centavosParaReais(centavos))
 }
