@@ -9,7 +9,7 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 
 ![Tela do simulador comparando SAC e PRICE](docs/screenshot.png)
 
-<!-- Depois do deploy: **[Abrir o simulador](https://SEU-PROJETO.vercel.app)** -->
+**[Abrir o simulador](https://simulador-financiamento-blush.vercel.app)**
 
 ## Funcionalidades
 
@@ -21,7 +21,7 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Tabela de amortização mês a mês, alternando SAC/PRICE
 - [x] Gráficos de saldo devedor e composição da parcela (Recharts)
 - [x] Link compartilhável: os valores ficam na URL
-- [ ] Deploy na Vercel
+- [x] Deploy na Vercel, com prévia do link no WhatsApp/LinkedIn (Open Graph)
 
 ## Stack
 

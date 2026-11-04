@@ -311,3 +311,25 @@ componentes são cobertos pelos testes de integração, sem meta numérica: for�
 
 Detalhe: o jsdom não tem `ResizeObserver`, que o Recharts usa; o teste define
 um substituto vazio.
+
+---
+
+# Publicação
+
+## 18. Deploy e prévia do link
+
+- **Vercel conectada ao GitHub:** cada push na `main` publica sozinho; o CI
+  roda em paralelo no GitHub Actions. Não precisou de `vercel.json`: a Vercel
+  detecta Vite (`npm run build`, pasta `dist`), e o app tem uma rota só.
+- **Teste no site publicado** (não só local): mesmos valores e mesmos arquivos
+  com hash do build local; link com parâmetro inválido (`valor=abc`) cai no
+  padrão; `utm_source` é ignorado; depois de ~20 teclas o histórico do
+  navegador continua com uma entrada só (prova do `replaceState`).
+- **Open Graph:** sem essas tags, o link colado no WhatsApp ou no LinkedIn
+  aparece cru. Agora sai com título, descrição e uma imagem 1200×630 gerada a
+  partir das curvas reais do cenário padrão. As URLs nas tags são absolutas
+  porque quem as lê é o robô de cada rede, que não resolve caminho relativo.
+- **Limitação conhecida:** a prévia é a mesma para qualquer simulação. Uma
+  prévia com os números do link exigiria gerar a imagem no servidor (ex.:
+  função serverless com `@vercel/og`), já que os robôs não executam
+  JavaScript. Fica como ideia de evolução.
