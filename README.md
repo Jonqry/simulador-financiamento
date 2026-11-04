@@ -7,8 +7,9 @@ Projeto de portfólio feito por um corretor de imóveis que estuda Sistemas para
 Internet: a ideia é responder com números a pergunta que todo cliente faz —
 *"qual sistema vale mais a pena para mim?"*
 
-> **Em desenvolvimento.** O módulo de cálculo está pronto e testado; a interface
-> vem a seguir.
+![Tela do simulador comparando SAC e PRICE](docs/screenshot.png)
+
+<!-- Depois do deploy: **[Abrir o simulador](https://SEU-PROJETO.vercel.app)** -->
 
 ## Funcionalidades
 
@@ -16,10 +17,10 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Conversão de taxa anual efetiva/nominal → mensal
 - [x] Comparação de juros totais e diferença da 1ª parcela
 - [x] Alerta de comprometimento de renda (padrão: 30%)
-- [ ] Formulário com validação por campo
-- [ ] Tabela de amortização
-- [ ] Gráficos de saldo devedor e composição da parcela (Recharts)
-- [ ] Link compartilhável com os valores na URL
+- [x] Formulário com validação por campo (aceita "400.000,50" e "11,49")
+- [x] Tabela de amortização mês a mês, alternando SAC/PRICE
+- [x] Gráficos de saldo devedor e composição da parcela (Recharts)
+- [x] Link compartilhável: os valores ficam na URL
 - [ ] Deploy na Vercel
 
 ## Stack
@@ -40,16 +41,21 @@ npm run build      # typecheck + build de produção
 
 ```
 src/
-└── lib/financiamento/   # regras de negócio: funções puras, sem React
-    ├── tipos.ts         # Centavos, Parcela, ResumoSistema…
-    ├── dinheiro.ts      # reais ↔ centavos, formatação BRL
-    ├── taxas.ts         # conversão de taxas
-    ├── sac.ts           # tabela SAC
-    ├── price.ts         # tabela PRICE
-    ├── renda.ts         # comprometimento de renda
-    ├── simulacao.ts     # simular(): orquestra tudo para a UI
-    └── *.test.ts        # testes ao lado de cada módulo
+├── lib/                     # lógica pura, sem React (100% de cobertura)
+│   ├── financiamento/       # regras de negócio
+│   │   ├── dinheiro.ts      # reais ↔ centavos, formatação BRL
+│   │   ├── taxas.ts         # conversão de taxas
+│   │   ├── sac.ts, price.ts # tabelas de amortização
+│   │   ├── renda.ts         # comprometimento de renda
+│   │   └── simulacao.ts     # simular(): orquestra tudo para a UI
+│   ├── formulario/          # texto digitado → números; estado ↔ URL
+│   └── graficos.ts          # dados prontos para o Recharts
+├── hooks/useSimulacao.ts    # estado do formulário sincronizado com a URL
+├── components/              # UI (formulário, cartões, tabela, gráficos)
+└── App.test.tsx             # testes de integração da interface (jsdom)
 ```
+
+Os testes ficam ao lado de cada módulo (`*.test.ts`).
 
 ## Exemplo de uso do módulo
 

@@ -192,4 +192,122 @@ domínio** (ideia de *ubiquitous language* do DDD) e mantenho em inglês só o q
 | Vitest         | Usa a mesma config do Vite, API compatível com Jest, rápido.        |
 | Tailwind       | Estilo sem alternar entre arquivos; design consistente.            |
 | Recharts       | Gráficos declarativos em React, suficiente para linha e área.      |
+| Testing Library + jsdom | Testa a interface como o usuário usa: acha campos pelo rótulo, digita, confere o texto. |
 | GitHub Actions | Testes, cobertura, typecheck e build a cada push na `main`.         |
+
+---
+
+# Interface
+
+## 11. O formulário guarda texto, não número
+
+O estado de cada campo é a **string digitada** (`ValoresFormulario`), e a
+conversão para número acontece em `converter()`, fora do componente.
+
+Por quê: enquanto a pessoa digita "11,49", o campo passa por "11," — que não é
+um número. Se o estado fosse `number`, esse valor intermediário se perderia ou
+viraria `NaN` e apagaria o que ela escreveu. Com string, o input mostra
+exatamente o que foi digitado e o erro aparece ao lado.
+
+Também por isso o input é `type="text"` com `inputMode="decimal"`, e não
+`type="number"`: o `number` não aceita "400.000,50", muda o valor com a rodinha
+do mouse e se comporta diferente em cada navegador. O `inputMode` ainda abre o
+teclado numérico no celular.
+
+**Alternativa considerada:** React Hook Form + Zod. Ótimos para formulários
+grandes com envio. Aqui são 5 campos, sem envio, recalculando a cada tecla; um
+`useState` e uma função pura de validação resolvem com menos código e sem
+dependência. Se o formulário crescer (seguros, FGTS, amortização extra), é a
+primeira coisa que eu adicionaria.
+
+## 12. Leitura de número brasileiro
+
+`parseNumeroBR` aceita "400.000", "400.000,50", "11,49" e também "11.49" (quem
+cola de outro site). A regra está documentada no código e tem um caso
+ambíguo assumido: "1.234" vira 1234, como um brasileiro leria. Há um teste de
+ida e volta: tudo que `formatarNumeroBR` escreve, `parseNumeroBR` lê de volta
+igual.
+
+## 13. Dois tipos de erro, uma mensagem por campo
+
+`converter()` junta erros de **formato** ("abc" → "Digite um número válido") e
+de **regra** do módulo de cálculo ("A entrada precisa ser menor que o valor do
+imóvel"). Se um campo tem os dois, o de formato vence, porque é o mais útil.
+
+O erro fica ligado ao input por `aria-invalid` e `aria-describedby`, então
+leitores de tela anunciam a mensagem quando o campo recebe foco. Enquanto
+houver erro, o resultado some e o botão de compartilhar fica desabilitado: não
+faz sentido mostrar números de uma simulação que não existe.
+
+## 14. A URL como estado compartilhável
+
+O link `?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000` reproduz
+a simulação. Decisões:
+
+- **`history.replaceState`, não `pushState`.** O `push` criaria uma entrada no
+  histórico a cada tecla; o botão "voltar" do navegador viraria um "desfazer"
+  caractere por caractere.
+- **Sem React Router.** O app tem uma página só. A URL é lida uma vez no
+  `useState` inicial e reescrita num `useEffect`. Router seria dependência
+  para resolver um problema que não existe.
+- **Dois formatos de número.** Na URL, formato de máquina (`11.49`, lido com
+  `Number()`), que é inequívoco. No input, formato brasileiro (`11,49`).
+  Misturar os dois daria ambiguidade: `1.234` na URL seria 1,234 ou 1234?
+- **Link quebrado não quebra a tela.** Parâmetro ausente ou inválido cai no
+  valor padrão, e parâmetros desconhecidos (`utm_source` do WhatsApp) são
+  ignorados.
+- **Nomes curtos em português** (`valor`, `taxa`, `prazo`): o link fica
+  legível quando um corretor manda para o cliente.
+
+## 15. Desempenho: `useDeferredValue` e lazy loading
+
+Cada tecla recalcula 2 tabelas de até 420 linhas e redesenha 2 gráficos.
+
+- **`useDeferredValue`** (React 18+): os erros são calculados com o valor
+  atual (feedback imediato no campo), e o resultado pesado com um valor
+  "adiado", que o React processa com prioridade menor. O input nunca trava.
+- **`useMemo`** nos dados dos gráficos: só recalcula quando o resultado muda,
+  não quando o usuário troca o sistema da tabela.
+- **Animação dos gráficos desligada:** os dados mudam a cada tecla, e a
+  animação só atrasaria a leitura.
+- **Gráficos carregados sob demanda** (`React.lazy` + `Suspense`). O Recharts é
+  ~60% do JavaScript. Sem isso, o build avisava que o bundle passava de 500 kB.
+  Agora a página principal tem ~239 kB e o chunk dos gráficos (~382 kB) baixa
+  em seguida, com um esqueleto no lugar.
+  *Tentativa que não funcionou:* separar o Recharts com `manualChunks`. O Vite
+  passou a adicionar `<link rel="modulepreload">` para ele no `index.html`,
+  ou seja, baixava tudo de cara de novo. A solução foi um único ponto de
+  entrada (`graficos/Graficos.ts`) importado pelos dois `lazy()`.
+- **Sem virtualização na tabela.** 420 linhas renderizam rápido; `react-window`
+  só compensaria com milhares.
+
+## 16. Cores e acessibilidade dos gráficos
+
+- **Paleta validada para daltonismo**: SAC azul `#2a78d6`, PRICE laranja
+  `#eb6834` (azul × laranja continua bem distinto com protanopia e
+  deuteranopia, ao contrário de verde × vermelho). Verifiquei com um script de diferença perceptual (ΔE em
+  OKLab sob simulação de daltonismo) em vez de escolher no olho.
+- **A cor segue o sistema.** SAC é azul em todo lugar: cartão, gráfico,
+  seletor. Juros e amortização usam outras cores (violeta e aqua) para não
+  serem confundidos com SAC/PRICE.
+- **Cores de status reservadas** (verde/amarelo/vermelho) só para o alerta de
+  renda, e sempre com ícone + texto ("Acima do limite"), nunca cor sozinha.
+- **Texto nunca na cor da série**: valores e legendas são cinza-escuro; a
+  identidade vem da bolinha colorida ao lado.
+- **A tabela é a alternativa acessível aos gráficos**: cada `<figure>` tem uma
+  legenda para leitores de tela apontando para ela.
+
+## 17. Testes da interface
+
+`App.test.tsx` roda em jsdom com Testing Library e testa **comportamento**, não
+implementação: encontra campos pelo rótulo (`getByLabelText('Prazo')`), digita
+com `userEvent` e confere o que aparece na tela e na URL. Cobre: valores
+padrão, abrir link compartilhado, URL atualizando, erro no campo, alerta de
+renda, troca SAC/PRICE na tabela e o botão de copiar.
+
+A cobertura de 100% continua exigida só em `src/lib`, onde estão as regras. Os
+componentes são cobertos pelos testes de integração, sem meta numérica: forçar
+100% em UI costuma gerar testes frágeis que verificam classe CSS.
+
+Detalhe: o jsdom não tem `ResizeObserver`, que o Recharts usa; o teste define
+um substituto vazio.
