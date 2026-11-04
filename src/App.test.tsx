@@ -47,6 +47,18 @@ describe('App', () => {
     expect(texto(sac)).toContain('CET estimado11,49% ao ano')
   })
 
+  it('a seção abre quando há erro dentro e não fecha sozinha quando o erro some', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const secao = screen.getByText('Amortização extra (FGTS)').closest('details')!
+    expect(secao.open).toBe(false)
+
+    await user.type(screen.getByLabelText('Valor extra'), '20000') // sem mês: erro → abre
+    expect(secao.open).toBe(true)
+    await user.type(screen.getByLabelText('Pagar no mês'), '24') // erro some: continua aberta
+    expect(secao.open).toBe(true)
+  })
+
   it('simula amortização extra com FGTS e compara prazo × parcela', async () => {
     const user = userEvent.setup()
     render(<App />)

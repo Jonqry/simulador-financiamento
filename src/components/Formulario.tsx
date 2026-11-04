@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { formatarBRL, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
 import { parseNumeroBR } from '../lib/formulario/numero'
 import type { ValoresFormulario } from '../lib/formulario/valores'
@@ -21,11 +21,21 @@ function dicaPrazo(texto: string): string | undefined {
 
 /**
  * Seção recolhível. <details> nativo: acessível por teclado e leitor de tela
- * sem nenhum JavaScript. Abre sozinha se tiver erro dentro.
+ * sem nenhum JavaScript.
+ *
+ * Abre sozinha quando surge um erro dentro, mas NUNCA fecha sozinha. A
+ * primeira versão usava open={temErro}: quando o erro sumia, o React tirava
+ * o atributo e a seção fechava no meio do preenchimento. O teste E2E com
+ * Playwright pegou isso; o teste no jsdom não, porque lá nada fica invisível.
  */
 function Secao({ titulo, resumo, temErro, children }: { titulo: string; resumo?: string; temErro: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    if (temErro && ref.current) ref.current.open = true
+  }, [temErro])
+
   return (
-    <details className="group rounded-lg border border-slate-200 open:bg-slate-50/60" open={temErro || undefined}>
+    <details ref={ref} className="group rounded-lg border border-slate-200 open:bg-slate-50/60">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-slate-800">
         <span>
           {titulo}
