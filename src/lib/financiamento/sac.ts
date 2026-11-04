@@ -1,5 +1,5 @@
+import { gerarTabela } from './motor'
 import type { Parcela, ParametrosAmortizacao } from './tipos'
-import { assertParametrosValidos } from './validacao'
 
 /**
  * Sistema de Amortização Constante (SAC).
@@ -12,28 +12,9 @@ import { assertParametrosValidos } from './validacao'
  * amortização base usa Math.floor. A sobra de centavos (no máximo
  * prazo - 1 centavos) é absorvida pela última parcela, garantindo que o
  * saldo termine exatamente em zero.
+ *
+ * O cálculo em si fica no motor (motor.ts), compartilhado com a PRICE.
  */
 export function calcularSAC(params: ParametrosAmortizacao): Parcela[] {
-  assertParametrosValidos(params)
-  const { principal, taxaMensal, prazoMeses } = params
-
-  const amortizacaoBase = Math.floor(principal / prazoMeses)
-  const parcelas: Parcela[] = []
-  let saldo = principal
-
-  for (let numero = 1; numero <= prazoMeses; numero++) {
-    const juros = Math.round(saldo * taxaMensal)
-    const amortizacao = numero === prazoMeses ? saldo : amortizacaoBase
-    saldo -= amortizacao
-
-    parcelas.push({
-      numero,
-      prestacao: juros + amortizacao,
-      juros,
-      amortizacao,
-      saldoDevedor: saldo,
-    })
-  }
-
-  return parcelas
+  return gerarTabela('SAC', params).map(({ amortizacaoExtra: _extra, ...parcela }) => parcela)
 }
