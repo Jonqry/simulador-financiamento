@@ -456,3 +456,65 @@ teste no jsdom não pegou porque lá nada fica invisível: o Playwright tentou
 escolher uma opção num `<select>` que tinha sumido da tela. A correção (abrir
 via `ref` quando surge erro, nunca fechar sozinho) veio com um teste de
 regressão no Vitest e está num commit próprio (`fix:`).
+
+---
+
+# Versão 3: ferramentas para o corretor
+
+## 25. Imóvel máximo (capacidade de compra)
+
+A pergunta do dia a dia do corretor é "até quanto posso mostrar para esse
+cliente?". O simulador responde para SAC e PRICE e diz **o que limita**:
+
+- **Renda:** a maior parcela (com seguros e taxa) chegaria a 30% da renda.
+- **Entrada:** o banco financia até 80% do imóvel, então a entrada E permite
+  imóvel de até E ÷ 0,2. Sem entrada, não dá para financiar.
+
+**Busca binária em vez de fórmula.** Dá para escrever uma fórmula
+aproximada, mas a parcela depende do arredondamento mês a mês, do MIP (sobre
+o saldo) e do DFI (sobre o valor do imóvel, que cresce junto com o
+financiamento). Em vez de aproximar, a busca testa valores com o **mesmo**
+cálculo da simulação. Como a parcela cresce com o valor financiado, ~35
+passos bastam, e o invariante da busca (o valor atual sempre cabe) garante
+que o resultado nunca passa do limite. O teste prova que é o máximo: o valor
+encontrado cabe, e 1 centavo a mais já não cabe.
+
+Conferido com uma implementação independente em Python, que usa outro
+método (varredura com refinamento decimal).
+
+## 26. Taxa de referência pela renda (MCMV e mercado)
+
+Taxas mudam, e cada banco tem a sua. Por isso:
+
+- **Dados isolados num arquivo só** (`taxasReferencia.ts`), com a fonte e a
+  data. Atualizar é trocar números ali.
+- **Sugestão, nunca automática.** A tela mostra a faixa, a taxa e o teto do
+  imóvel, e o usuário clica em "usar". Aplicar sozinho esconderia uma
+  decisão que depende do banco e da análise de crédito.
+- **Até R$ 13 mil de renda:** tabela do Minha Casa, Minha Vida por faixa,
+  região (N/NE ou S/SE/CO) e se é cotista do FGTS. Avisa quando o imóvel
+  passa do teto da faixa.
+- **Acima disso:** faixa de taxas de mercado (de 10,26% a 15% a.a. + TR em
+  nov/2026).
+- **Padrões conservadores:** "não cotista" (taxa mais alta) e Norte/Nordeste
+  (o projeto nasceu em Recife; é um seletor, fácil de trocar).
+- Região e cotista ficam fora da URL e do cálculo: servem só para escolher a
+  linha da tabela.
+
+Fontes: quadro de juros do MCMV do Ministério das Cidades (atualizado em
+28/10/2026), faixas da Portaria MCID 333/2026 e taxas "a partir de" dos
+bancos em nov/2026. As fontes secundárias divergiam em detalhes (ex.: Faixa 2
+"cerca de 6,5%" numa e "4,75% a 5,5%" noutra); usei a tabela completa por
+renda, que bate com o exemplo oficial do governo (renda de R$ 4.900 → 6,5%).
+
+## 27. Resumo para WhatsApp e glossário
+
+- **Resumo para o cliente:** o botão monta um texto com imóvel, entrada,
+  parcelas, total pago, economia do SAC, economia com FGTS (se houver) e o
+  link. Usa o negrito do WhatsApp (`*texto*`). É uma função pura
+  (`gerarResumoCliente`), testada com o texto completo esperado.
+- **Sem a renda do cliente no texto:** a mensagem pode ser encaminhada, e
+  renda é dado pessoal. Há um teste só para isso.
+- **Glossário** em linguagem de cliente (SAC, PRICE, MIP, DFI, CET, cota, TR
+  etc.), para o corretor usar na conversa. Inclui a TR, que o simulador não
+  calcula, para deixar essa limitação clara.

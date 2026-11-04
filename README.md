@@ -25,6 +25,9 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Seguros MIP e DFI, taxa de administração e CET estimado
 - [x] Amortização extra (FGTS): reduzir prazo × reduzir parcela, única ou recorrente
 - [x] Testes de ponta a ponta com Playwright, no CI e após cada deploy
+- [x] Imóvel máximo que o cliente pode comprar (e se quem limita é a renda ou a entrada)
+- [x] Taxa de referência pela renda: faixas do Minha Casa, Minha Vida ou taxas de mercado
+- [x] Resumo pronto para WhatsApp e glossário dos termos
 
 ## Stack
 
@@ -56,9 +59,12 @@ src/
 │   │   ├── sac.ts, price.ts # os dois sistemas, como casos do motor
 │   │   ├── encargos.ts      # seguros MIP/DFI e taxa de administração
 │   │   ├── cet.ts           # taxa interna de retorno e CET
+│   │   ├── capacidade.ts    # imóvel máximo pela renda e pela entrada
 │   │   ├── renda.ts         # comprometimento de renda
 │   │   └── simulacao.ts     # simular(): orquestra tudo para a UI
 │   ├── formulario/          # texto digitado → números; estado ↔ URL
+│   ├── taxasReferencia.ts   # tabela MCMV e taxas de mercado (com fonte e data)
+│   ├── resumoCliente.ts     # texto do resumo para WhatsApp
 │   └── graficos.ts          # dados prontos para o Recharts
 ├── hooks/useSimulacao.ts    # estado do formulário sincronizado com a URL
 ├── components/              # UI (formulário, cartões, tabela, gráficos)
