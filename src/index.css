@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+/*
+ * Tokens de cor. Os mesmos valores estão em src/cores.ts (para o Recharts).
+ * Status (bom/atenção/crítico) é reservado ao alerta de renda e nunca é usado
+ * como cor de série.
+ */
+@theme {
+  --color-sac: #2a78d6;
+  --color-price: #eb6834;
+  --color-bom: #0ca30c;
+  --color-atencao: #fab219;
+  --color-critico: #d03b3b;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
