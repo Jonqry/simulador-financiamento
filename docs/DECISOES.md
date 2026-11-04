@@ -333,3 +333,116 @@ um substituto vazio.
   prévia com os números do link exigiria gerar a imagem no servidor (ex.:
   função serverless com `@vercel/og`), já que os robôs não executam
   JavaScript. Fica como ideia de evolução.
+
+---
+
+# Versão 2: seguros, CET, amortização extra e E2E
+
+## 19. Um motor só para SAC e PRICE (refatoração com rede de segurança)
+
+Para suportar pagamentos extras, SAC e PRICE precisariam da mesma lógica
+nova duas vezes. Em vez disso, criei `gerarTabela(sistema, params, opções)`
+em `motor.ts`: os dois sistemas diferem só na regra da amortização regular
+(fixa no SAC; prestação menos juros na PRICE). Juros, arredondamento,
+última parcela e extras ficam num lugar só.
+
+A refatoração foi feita **com os testes antigos como rede de segurança**:
+`calcularSAC` e `calcularPRICE` viraram três linhas que chamam o motor, e os
+144 testes existentes passaram sem nenhuma alteração. Um teste novo afirma
+que, sem extras, o motor é idêntico às versões anteriores.
+
+## 20. Encargos separados da amortização
+
+Seguros e taxa **não mudam a dívida**, só o valor pago. Por isso
+`aplicarEncargos()` recebe uma tabela já pronta e acrescenta MIP, DFI, taxa
+e total em cada linha. A mesma função serve para SAC, PRICE e os cenários
+com extra, sem repetir código.
+
+- **MIP** incide sobre o saldo devedor do mês (antes do pagamento): cai com a dívida.
+- **DFI** incide sobre o valor do imóvel: fica constante.
+- **Taxa de administração**: valor fixo em reais.
+
+Os valores padrão (MIP 0,025% a.m., DFI 0,01% a.m., R$ 25) são **exemplos**.
+O MIP depende da idade e cada banco tem sua tabela, então o formulário avisa
+para usar os números do contrato. O comprometimento de renda passou a usar a
+parcela **total**, que é o que o banco considera.
+
+## 21. CET por taxa interna de retorno
+
+CET é a taxa que iguala o valor liberado ao valor presente de tudo que se
+paga. Não tem fórmula fechada, então é resolvido numericamente.
+
+- **Bissecção, não Newton-Raphson.** Newton converge mais rápido, mas pode
+  divergir com um chute ruim. Aqui a função é monótona (mais taxa, menor
+  valor presente), então a bissecção sempre converge; 100 iterações levam
+  menos de 1 ms.
+- **Conferido com outro método:** a implementação independente em Python
+  usou o método da secante e chegou aos mesmos valores (12,19% SAC, 12,12% PRICE).
+- **Teste de sanidade:** sem seguros e taxa, o CET tem de dar a própria taxa
+  de juros (11,49%), e dá, a menos do arredondamento.
+- **Simplificação assumida:** o CET oficial (Resolução CMN 3.517) inclui
+  custos de contratação (avaliação, registro, tarifas), que o simulador não pede.
+
+**Descoberta que virou explicação na tela:** com os valores padrão, o CET da
+PRICE (12,12%) sai *menor* que o do SAC (12,19%), mesmo a PRICE custando
+R$ 251 mil a mais. Não é bug: DFI e taxa são valores fixos, e na PRICE a
+dívida fica alta por mais tempo, então esses custos pesam menos *em
+proporção*. CET é taxa, não total. A interface mostra essa explicação
+quando o caso acontece, para ninguém escolher a PRICE achando que é mais barata.
+
+## 22. Amortização extra: prazo × parcela
+
+O usuário informa valor, mês e repetição (uma vez, todo ano ou a cada 2 anos,
+que é o intervalo mínimo do FGTS). O simulador calcula os **dois modos nos
+dois sistemas** e mostra uma tabela 2×2 com economia, prazo final e parcela
+depois do extra.
+
+- **Reduzir prazo:** mantém a regra da parcela; a dívida acaba antes.
+- **Reduzir parcela:** depois de cada extra, recalcula a parcela para o
+  prazo restante (SAC: saldo ÷ meses restantes; PRICE: nova anuidade).
+- O extra nunca passa do saldo; um extra gigante simplesmente quita o contrato.
+
+**Teste que estava errado, não o código:** eu afirmei que no modo "reduzir
+parcela" o prazo nunca muda. O teste falhou: com R$ 20 mil a cada 2 anos, os
+próprios extras quitam a dívida antes (em 240 meses no SAC). Corrigi a
+afirmação do teste, que agora diz o que de fato vale, e adicionei outro
+mostrando que, com **um** extra só, o prazo se mantém.
+
+No celular, a tabela 2×2 vira um cartão por sistema, para não precisar de
+rolagem lateral.
+
+## 23. Formulário com campos opcionais
+
+`EntradaSimulacao` continua **plana** (sem objetos aninhados): cada campo do
+formulário é uma chave, e os erros usam as mesmas chaves. A conversão texto
+→ número virou uma **tabela de configuração** (unidade, obrigatório, valor
+padrão por campo) em vez de um `if` por campo: campo novo = uma linha.
+
+Seguros e extra ficam em seções recolhíveis com `<details>` nativo
+(acessível sem JavaScript). Campos opcionais vazios valem zero. No link, os
+campos de extra só entram quando há valor extra, para o link padrão
+continuar curto.
+
+## 24. Testes de ponta a ponta (Playwright)
+
+Vitest garante os números; Playwright garante que **o site funciona num
+navegador de verdade**: build de produção, carregamento sob demanda dos
+gráficos, URL, área de transferência, tags de prévia.
+
+- **8 cenários × 2 dispositivos** (desktop e celular Pixel 7, ambos Chromium,
+  para o CI instalar um navegador só).
+- **Dois jeitos de rodar:** sem `BASE_URL`, o Playwright sobe o build local
+  (`vite preview`), que é o que o CI faz a cada push; com `BASE_URL`, testa
+  um site já publicado.
+- **Após cada deploy de produção:** o workflow `e2e-producao.yml` escuta o
+  evento `deployment_status` que a Vercel publica no GitHub e roda os testes
+  no domínio de produção. Usa o domínio público, não a URL única do deploy,
+  que fica protegida por login na Vercel.
+
+**O primeiro E2E já pegou um bug real.** A seção "Amortização extra" abria
+quando havia erro (`open={temErro}`), e quando a pessoa corrigia o erro o
+React tirava o atributo `open`, fechando a seção no meio do preenchimento. O
+teste no jsdom não pegou porque lá nada fica invisível: o Playwright tentou
+escolher uma opção num `<select>` que tinha sumido da tela. A correção (abrir
+via `ref` quando surge erro, nunca fechar sozinho) veio com um teste de
+regressão no Vitest e está num commit próprio (`fix:`).

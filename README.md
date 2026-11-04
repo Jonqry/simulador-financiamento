@@ -22,10 +22,13 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Gráficos de saldo devedor e composição da parcela (Recharts)
 - [x] Link compartilhável: os valores ficam na URL
 - [x] Deploy na Vercel, com prévia do link no WhatsApp/LinkedIn (Open Graph)
+- [x] Seguros MIP e DFI, taxa de administração e CET estimado
+- [x] Amortização extra (FGTS): reduzir prazo × reduzir parcela, única ou recorrente
+- [x] Testes de ponta a ponta com Playwright, no CI e após cada deploy
 
 ## Stack
 
-React · TypeScript · Vite · Tailwind CSS · Recharts · Vitest
+React · TypeScript · Vite · Tailwind CSS · Recharts · Vitest · Playwright
 
 ## Como rodar
 
@@ -35,7 +38,11 @@ npm run dev        # servidor de desenvolvimento
 npm test           # testes em modo watch
 npm run coverage   # testes + relatório de cobertura (mínimo 100% em src/lib)
 npm run build      # typecheck + build de produção
+npm run e2e        # testes de ponta a ponta (sobe o build local)
+npm run e2e:producao  # os mesmos testes contra o site publicado
 ```
+
+Na primeira vez, instale o navegador do Playwright: `npx playwright install chromium`.
 
 ## Estrutura
 
@@ -45,7 +52,10 @@ src/
 │   ├── financiamento/       # regras de negócio
 │   │   ├── dinheiro.ts      # reais ↔ centavos, formatação BRL
 │   │   ├── taxas.ts         # conversão de taxas
-│   │   ├── sac.ts, price.ts # tabelas de amortização
+│   │   ├── motor.ts         # motor único de amortização (+ pagamentos extras)
+│   │   ├── sac.ts, price.ts # os dois sistemas, como casos do motor
+│   │   ├── encargos.ts      # seguros MIP/DFI e taxa de administração
+│   │   ├── cet.ts           # taxa interna de retorno e CET
 │   │   ├── renda.ts         # comprometimento de renda
 │   │   └── simulacao.ts     # simular(): orquestra tudo para a UI
 │   ├── formulario/          # texto digitado → números; estado ↔ URL
@@ -53,6 +63,7 @@ src/
 ├── hooks/useSimulacao.ts    # estado do formulário sincronizado com a URL
 ├── components/              # UI (formulário, cartões, tabela, gráficos)
 └── App.test.tsx             # testes de integração da interface (jsdom)
+e2e/                         # testes de ponta a ponta (Playwright)
 ```
 
 Os testes ficam ao lado de cada módulo (`*.test.ts`).
@@ -82,5 +93,6 @@ explicadas em [`docs/DECISOES.md`](docs/DECISOES.md).
 
 ## Aviso
 
-Simulação educativa. Não inclui seguros (MIP/DFI), taxa de administração nem
-correção pela TR; os valores reais dependem das condições de cada banco.
+Simulação educativa. Seguros e taxa usam os valores informados (os padrões são
+exemplos); o cálculo não inclui correção pela TR nem custos de contratação. Os
+valores reais dependem das condições de cada banco.
