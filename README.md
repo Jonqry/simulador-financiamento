@@ -30,6 +30,7 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 - [x] Resumo pronto para WhatsApp e glossário dos termos
 - [x] Cota de financiamento editável (até 90%) e prazo de até 35 anos
 - [x] Imóvel na planta: encargos de evolução de obra até as chaves, com gráfico
+- [x] Envio do resumo direto pelo WhatsApp e barra de resultado fixa no celular
 
 ## Stack
 

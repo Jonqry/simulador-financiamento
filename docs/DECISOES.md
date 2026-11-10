@@ -564,3 +564,31 @@ todo mês.
   formulário conta a partir das chaves; alguns contratos descontam a obra
   do prazo total, o que vale conferir na proposta.
 - Valores conferidos com implementação independente em Python (Decimal).
+
+## 30. Revisão de usabilidade (o site no dia a dia do corretor)
+
+Depois de pronto, revisei o site usando-o como corretor, no computador e no
+celular. Cinco problemas práticos, todos corrigidos e cobertos por teste:
+
+- **No celular, o resultado ficava escondido.** O formulário ocupa quase duas
+  telas, então quem digitava não via a parcela mudar. Agora uma barra fixa no
+  rodapé mostra a 1ª parcela do SAC e da PRICE e leva aos detalhes. Ela some
+  quando o resultado entra na tela (`IntersectionObserver`), para não repetir
+  informação.
+- **Números sem pontos.** Digitar `320000` ficava `320000`. Agora o campo é
+  formatado **ao sair dele** (`320.000`), nunca durante a digitação: mexer
+  no texto enquanto a pessoa digita faz o cursor pular.
+- **Entrada só em reais.** A dica passou a mostrar também o percentual
+  ("entrada de 20%"), que é como o corretor fala.
+- **Enviar ao cliente exigia copiar e colar.** O botão principal agora abre o
+  WhatsApp com o resumo pronto (`wa.me/?text=`). O link dentro da mensagem é
+  montado a partir dos valores do formulário, e não de `window.location`,
+  que só é atualizado depois do render e sairia atrasado.
+- **Recomeçar** volta ao cenário inicial para simular o próximo cliente.
+
+**Bug de layout que a revisão pegou:** no computador o formulário é fixo
+(`position: sticky`). Com as seções abertas ele fica mais alto que a tela, e
+um elemento sticky mais alto que a janela esconde o próprio final: os botões
+de envio ficavam inalcançáveis até o fim da página. Agora o formulário rola
+por dentro (`max-height` + `overflow-y`), e um teste E2E com janela baixa
+(640 px) garante que o botão do WhatsApp continua alcançável.
