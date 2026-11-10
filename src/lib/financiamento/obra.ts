@@ -67,7 +67,7 @@ export function calcularFaseObra(p: ParametrosObra): ParcelaObra[] {
   return Array.from({ length: mesesObra }, (_, k) => {
     const mes = k + 1
     const ultimo = mes === mesesObra
-    // No último mês, 100% exatos: 0,3 + 0,7 × 24/24 dá 0,9999999999999999 em
+    // No último mês, 100% exatos: 0,3 + 0,7 × 24/24 dá 0,9999999999999998 em
     // ponto flutuante, e o saldo liberado tem de ser o financiamento inteiro.
     const percentualObra = ultimo ? 1 : executadaInicial + ((1 - executadaInicial) * mes) / mesesObra
     const saldoLiberado = ultimo ? financiado : Math.round(financiado * percentualObra)
