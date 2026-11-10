@@ -190,7 +190,7 @@ describe('App', () => {
     const user = userEvent.setup()
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'Copiar resumo para o cliente' }))
+    await user.click(screen.getByRole('button', { name: 'Copiar resumo' }))
     const copiado = writeText.mock.lastCall?.[0] ?? ''
     expect(copiado).toMatch(/^\*Simulação de financiamento imobiliário\*/)
     expect(copiado.replace(/\u00a0/g, ' ')).toContain('1ª parcela: R$ 3.947,46')
@@ -254,6 +254,71 @@ describe('App', () => {
     expect(texto(painel)).toContain('R$ 22.918,16') // total na obra
     expect(texto(painel)).toContain('Nessa fase a dívida não diminui')
     expect(window.location.search).toContain('obra=24&executada=30')
+  })
+
+  it('ao sair do campo, o número ganha pontos de milhar', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const valor = screen.getByLabelText('Valor do imóvel')
+    await user.clear(valor)
+    await user.type(valor, '320000')
+    expect(valor).toHaveProperty('value', '320000') // enquanto digita, não mexe no texto
+    await user.tab()
+    expect(valor).toHaveProperty('value', '320.000')
+  })
+
+  it('texto inválido não é alterado ao sair do campo', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const valor = screen.getByLabelText('Valor do imóvel')
+    await user.clear(valor)
+    await user.type(valor, 'abc')
+    await user.tab()
+    expect(valor).toHaveProperty('value', 'abc')
+  })
+
+  it('mostra a entrada também em percentual', () => {
+    render(<App />)
+    expect(screen.getByText(/Valor financiado: R\$ 320\.000,00 · entrada de 20%/)).toBeTruthy()
+  })
+
+  it('"Recomeçar" volta ao cenário inicial', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    expect(screen.getByLabelText('Valor do imóvel')).toHaveProperty('value', '400.000')
+    await user.click(screen.getByRole('button', { name: 'Recomeçar' }))
+    expect(screen.getByLabelText('Valor do imóvel')).toHaveProperty('value', '250.000')
+    expect(window.location.search).toContain('valor=250000')
+  })
+
+  it('o botão do WhatsApp leva o resumo e o link atualizados', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const prazo = screen.getByLabelText('Prazo')
+    await user.clear(prazo)
+    await user.type(prazo, '300')
+
+    const href = screen.getByRole('link', { name: 'Enviar resumo no WhatsApp' }).getAttribute('href')!
+    expect(href.startsWith('https://wa.me/?text=')).toBe(true)
+    const mensagem = decodeURIComponent(href.slice('https://wa.me/?text='.length))
+    expect(mensagem).toContain('*Simulação de financiamento imobiliário*')
+    expect(mensagem).toContain('em 300 meses (25 anos)')
+    expect(mensagem).toContain('prazo=300') // o link já reflete o que acabou de ser digitado
+  })
+
+  it('com erro no formulário, o envio pelo WhatsApp fica desabilitado', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.clear(screen.getByLabelText('Prazo'))
+    expect(screen.queryByRole('link', { name: 'Enviar resumo no WhatsApp' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Enviar resumo no WhatsApp' })).toHaveProperty('disabled', true)
+  })
+
+  it('avisa quando a taxa sugerida já está em uso', () => {
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    expect(screen.getByText(/Você já está usando esta taxa/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Usar / })).toBeNull()
   })
 
   it('copia o link da simulação', async () => {

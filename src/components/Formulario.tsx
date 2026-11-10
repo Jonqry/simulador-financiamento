@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
-import { formatarBRL, reaisParaCentavos, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
+import { formatarBRL, formatarPercentual, reaisParaCentavos, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
 import { formatarNumeroBR, parseNumeroBR } from '../lib/formulario/numero'
+import { paraQueryString } from '../lib/formulario/url'
 import { converter, type ValoresFormulario } from '../lib/formulario/valores'
 import { gerarResumoCliente } from '../lib/resumoCliente'
 import { BotaoCompartilhar, BotaoCopiar } from './BotaoCompartilhar'
@@ -11,6 +12,8 @@ interface FormularioProps {
   valores: ValoresFormulario
   erros: ErrosSimulacao
   alterar: (campo: CampoSimulacao, texto: string) => void
+  formatar: (campo: CampoSimulacao) => void
+  reiniciar: () => void
   resultado: ResultadoSimulacao | null
 }
 
@@ -52,9 +55,17 @@ function Secao({ titulo, resumo, temErro, children }: { titulo: string; resumo?:
   )
 }
 
+/**
+ * Link da simulação montado a partir dos valores (e não de window.location.href,
+ * que só é atualizado depois do render): assim o link do WhatsApp nunca sai atrasado.
+ */
+function linkDaSimulacao(valores: ValoresFormulario): string {
+  return `${window.location.origin}${window.location.pathname}?${paraQueryString(valores)}`
+}
+
 function textoResumo(valores: ValoresFormulario, resultado: ResultadoSimulacao): string {
   const conversao = converter(valores)
-  if (!conversao.ok) return window.location.href
+  if (!conversao.ok) return linkDaSimulacao(valores)
   const e = conversao.entrada
   const intervalo = e.extraIntervalo ?? 0
   const quando = intervalo === 24 ? 'a cada 2 anos' : intervalo === 12 ? 'todo ano' : `no mês ${e.extraMes}`
@@ -68,7 +79,7 @@ function textoResumo(valores: ValoresFormulario, resultado: ResultadoSimulacao):
       descricaoExtra: e.extraValor ? `${formatarBRL(e.extraValor)} ${quando}` : undefined,
     },
     resultado,
-    window.location.href,
+    linkDaSimulacao(valores),
   )
 }
 
@@ -83,7 +94,10 @@ function dicaEntrada(valores: ValoresFormulario, resultado: ResultadoSimulacao |
       return `Atenção: com cota de ${formatarNumeroBR(cotaPercentual)}%, a entrada mínima é ${formatarBRL(entradaMinima)}.`
     }
   }
-  return resultado ? `Valor financiado: ${formatarBRL(resultado.valorFinanciado)}` : undefined
+  if (!resultado) return undefined
+  // Corretor pensa em "20% de entrada": mostra o percentual junto.
+  const percentual = formatarPercentual(resultado.entrada / (resultado.entrada + resultado.valorFinanciado))
+  return `Valor financiado: ${formatarBRL(resultado.valorFinanciado)} · entrada de ${percentual}`
 }
 
 const OPCOES_REPETICAO = [
@@ -92,11 +106,12 @@ const OPCOES_REPETICAO = [
   { valor: '12', rotulo: 'Todo ano' },
 ]
 
-export function Formulario({ valores, erros, alterar, resultado }: FormularioProps) {
+export function Formulario({ valores, erros, alterar, formatar, reiniciar, resultado }: FormularioProps) {
   const idRepetir = useId()
   const campo = (nome: CampoSimulacao) => ({
     valor: valores[nome],
     aoAlterar: (texto: string) => alterar(nome, texto),
+    aoSair: () => formatar(nome),
     erro: erros[nome],
   })
 
@@ -109,7 +124,17 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
       onSubmit={(evento) => evento.preventDefault()}
       aria-label="Dados do financiamento"
     >
-      <h2 className="text-lg font-semibold text-slate-900">Dados do financiamento</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold whitespace-nowrap text-slate-900">Dados do financiamento</h2>
+        <button
+          type="button"
+          onClick={reiniciar}
+          className="rounded-md py-1 text-xs font-medium whitespace-nowrap text-slate-600 underline underline-offset-2 hover:text-slate-900"
+          title="Volta aos valores iniciais para simular outro cliente"
+        >
+          Recomeçar
+        </button>
+      </div>
 
       <Campo rotulo="Valor do imóvel" prefixo="R$" {...campo('valorImovel')} />
       <Campo
@@ -128,7 +153,7 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
         rotulo="Prazo"
         sufixo="meses"
         {...campo('prazoMeses')}
-        dica={[dicaPrazo(valores.prazoMeses), 'Caixa e BB: até 420 meses (35 anos)'].filter(Boolean).join(' · ')}
+        dica={[dicaPrazo(valores.prazoMeses), 'Caixa e BB vão até 420 meses'].filter(Boolean).join(' · ')}
       />
       <Campo
         rotulo="Renda bruta mensal"
@@ -138,6 +163,7 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
       />
       <SugestaoTaxa
         rendaTexto={valores.rendaMensal}
+        taxaTexto={valores.taxaAnual}
         valorImovelTexto={valores.valorImovel}
         usarTaxa={(taxa) => alterar('taxaAnual', taxa)}
       />
@@ -220,16 +246,33 @@ export function Formulario({ valores, erros, alterar, resultado }: FormularioPro
         </div>
       </Secao>
 
-      <div className="space-y-1">
-        <BotaoCompartilhar desabilitado={!resultado} />
-        <BotaoCopiar
-          variante="secundario"
-          rotulo="Copiar resumo para o cliente"
-          rotuloCopiado="Resumo copiado! Cole no WhatsApp"
-          obterTexto={() => (resultado ? textoResumo(valores, resultado) : '')}
-          desabilitado={!resultado}
-          mensagemFalha="Não foi possível copiar o resumo neste navegador."
-        />
+      <div className="space-y-2 border-t border-slate-100 pt-4">
+        <p className="text-sm font-medium text-slate-700">Enviar para o cliente</p>
+        {resultado ? (
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(textoResumo(valores, resultado))}`}
+            target="_blank"
+            rel="noreferrer"
+            className="block w-full rounded-lg bg-slate-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-slate-700"
+          >
+            Enviar resumo no WhatsApp
+          </a>
+        ) : (
+          <button type="button" disabled className="w-full cursor-not-allowed rounded-lg bg-slate-300 px-4 py-2.5 text-sm font-semibold text-white">
+            Enviar resumo no WhatsApp
+          </button>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <BotaoCopiar
+            variante="secundario"
+            rotulo="Copiar resumo"
+            rotuloCopiado="Resumo copiado!"
+            obterTexto={() => (resultado ? textoResumo(valores, resultado) : '')}
+            desabilitado={!resultado}
+            mensagemFalha="Não foi possível copiar."
+          />
+          <BotaoCompartilhar desabilitado={!resultado} />
+        </div>
       </div>
     </form>
   )

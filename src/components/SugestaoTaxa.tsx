@@ -6,6 +6,8 @@ import { ATUALIZACAO_TAXAS, sugerirTaxa, type Regiao } from '../lib/taxasReferen
 interface SugestaoTaxaProps {
   /** Texto do campo de renda, como digitado. */
   rendaTexto: string
+  /** Texto do campo de taxa, para saber se a sugestão já está em uso. */
+  taxaTexto: string
   /** Texto do campo de valor do imóvel, para avisar sobre o teto da faixa. */
   valorImovelTexto: string
   usarTaxa: (taxaPercentual: string) => void
@@ -17,7 +19,7 @@ interface SugestaoTaxaProps {
  * aplica. Região e cotista ficam aqui, fora da simulação, porque só servem
  * para escolher a linha da tabela.
  */
-export function SugestaoTaxa({ rendaTexto, valorImovelTexto, usarTaxa }: SugestaoTaxaProps) {
+export function SugestaoTaxa({ rendaTexto, taxaTexto, valorImovelTexto, usarTaxa }: SugestaoTaxaProps) {
   const id = useId()
   const [regiao, setRegiao] = useState<Regiao>('NNE')
   const [cotista, setCotista] = useState(false)
@@ -28,6 +30,9 @@ export function SugestaoTaxa({ rendaTexto, valorImovelTexto, usarTaxa }: Sugesta
   const valorImovelReais = parseNumeroBR(valorImovelTexto)
   const acimaDoTeto =
     sugestao.tipo === 'mcmv' && valorImovelReais !== null && reaisParaCentavos(valorImovelReais) > sugestao.tetoImovel
+
+  const taxaAtual = parseNumeroBR(taxaTexto)
+  const emUso = sugestao.tipo === 'mcmv' && taxaAtual !== null && Math.abs(taxaAtual - sugestao.taxaAnual * 100) < 0.00005
 
   const seletor = 'rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800'
 
@@ -71,14 +76,20 @@ export function SugestaoTaxa({ rendaTexto, valorImovelTexto, usarTaxa }: Sugesta
               O imóvel informado passa do teto da faixa: fora do MCMV, valem as taxas de mercado.
             </p>
           )}
-          <button
-            type="button"
-            // formatarNumeroBR evita o ruído de ponto flutuante: 0.0766 × 100 = 7.659999...
-            onClick={() => usarTaxa(formatarNumeroBR(sugestao.taxaAnual * 100))}
-            className="mt-2 rounded-md bg-sac px-3 py-1 text-xs font-semibold text-white hover:bg-sac/90"
-          >
-            Usar {formatarPercentual(sugestao.taxaAnual)}
-          </button>
+          {emUso ? (
+            <p className="mt-2 text-xs font-medium text-slate-800">
+              <span aria-hidden>✓</span> Você já está usando esta taxa.
+            </p>
+          ) : (
+            <button
+              type="button"
+              // formatarNumeroBR evita o ruído de ponto flutuante: 0.0766 × 100 = 7.659999...
+              onClick={() => usarTaxa(formatarNumeroBR(sugestao.taxaAnual * 100))}
+              className="mt-2 rounded-md bg-sac px-3 py-1 text-xs font-semibold text-white hover:bg-sac/90"
+            >
+              Usar {formatarPercentual(sugestao.taxaAnual)}
+            </button>
+          )}
         </>
       ) : (
         <p className="mt-1 text-slate-700">

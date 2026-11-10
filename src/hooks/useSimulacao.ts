@@ -1,11 +1,16 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { simular, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
+import { parseNumeroBR } from '../lib/formulario/numero'
 import { lerDaUrl, paraQueryString } from '../lib/formulario/url'
-import { converter, type ValoresFormulario } from '../lib/formulario/valores'
+import { converter, formatarValor, VALORES_PADRAO, type ValoresFormulario } from '../lib/formulario/valores'
 
 export interface EstadoSimulacao {
   valores: ValoresFormulario
   alterar: (campo: CampoSimulacao, texto: string) => void
+  /** Ao sair do campo: "320000" vira "320.000". Texto inválido fica como está. */
+  formatar: (campo: CampoSimulacao) => void
+  /** Volta ao cenário inicial (próximo cliente). */
+  reiniciar: () => void
   erros: ErrosSimulacao
   /** null enquanto houver campo inválido. */
   resultado: ResultadoSimulacao | null
@@ -43,6 +48,15 @@ export function useSimulacao(): EstadoSimulacao {
   return {
     valores,
     alterar: (campo, texto) => setValores((anteriores) => ({ ...anteriores, [campo]: texto })),
+    formatar: (campo) =>
+      setValores((anteriores) => {
+        const numero = parseNumeroBR(anteriores[campo])
+        if (numero === null) return anteriores
+        const formatado = formatarValor(campo, numero)
+        // Mesmo objeto quando nada muda: evita re-renderizar e recalcular à toa.
+        return formatado === anteriores[campo] ? anteriores : { ...anteriores, [campo]: formatado }
+      }),
+    reiniciar: () => setValores(VALORES_PADRAO),
     erros: conversaoAtual.ok ? {} : conversaoAtual.erros,
     resultado: conversaoAtual.ok ? resultado : null,
   }

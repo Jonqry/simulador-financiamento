@@ -4,6 +4,8 @@ interface CampoProps {
   rotulo: string
   valor: string
   aoAlterar: (texto: string) => void
+  /** Chamado ao sair do campo (usado para formatar o número digitado). */
+  aoSair?: () => void
   erro?: string
   prefixo?: string
   sufixo?: string
@@ -18,7 +20,7 @@ interface CampoProps {
  * muda o valor com a rodinha do mouse. O inputMode ainda abre o teclado
  * numérico no celular.
  */
-export function Campo({ rotulo, valor, aoAlterar, erro, prefixo, sufixo, dica }: CampoProps) {
+export function Campo({ rotulo, valor, aoAlterar, aoSair, erro, prefixo, sufixo, dica }: CampoProps) {
   const id = useId()
   const idDescricao = `${id}-descricao`
   const descricao = erro ?? dica
@@ -41,6 +43,7 @@ export function Campo({ rotulo, valor, aoAlterar, erro, prefixo, sufixo, dica }:
           autoComplete="off"
           value={valor}
           onChange={(evento) => aoAlterar(evento.target.value)}
+          onBlur={aoSair}
           aria-invalid={erro ? true : undefined}
           aria-describedby={descricao ? idDescricao : undefined}
           className="w-full min-w-0 bg-transparent py-2 text-slate-900 tabular-nums outline-none"

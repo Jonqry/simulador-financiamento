@@ -46,7 +46,7 @@ export function BotaoCopiar({ rotulo, rotuloCopiado, obterTexto, desabilitado, v
         type="button"
         onClick={copiar}
         disabled={desabilitado}
-        className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed ${estilo}`}
+        className={`w-full rounded-lg px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed ${estilo}`}
       >
         {estado === 'copiado' ? rotuloCopiado : rotulo}
       </button>
@@ -61,11 +61,12 @@ export function BotaoCopiar({ rotulo, rotuloCopiado, obterTexto, desabilitado, v
 export function BotaoCompartilhar({ desabilitado }: { desabilitado: boolean }) {
   return (
     <BotaoCopiar
-      rotulo="Copiar link desta simulação"
+      variante="secundario"
+      rotulo="Copiar link"
       rotuloCopiado="Link copiado!"
       obterTexto={() => window.location.href}
       desabilitado={desabilitado}
-      mensagemFalha="Não foi possível copiar. Copie o endereço da barra do navegador."
+      mensagemFalha="Não foi possível copiar."
     />
   )
 }

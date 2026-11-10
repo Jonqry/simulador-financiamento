@@ -105,6 +105,35 @@ test('imóvel na planta: painel e gráfico da evolução de obra', async ({ page
   await expect(painel.locator('svg.recharts-surface')).toHaveCount(1)
 })
 
+test('celular: barra fixa mostra a parcela enquanto se preenche o formulário', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'A barra só existe em telas pequenas')
+  await page.goto(LINK_PADRAO)
+  const barra = page.getByRole('complementary', { name: 'Resumo da simulação' })
+
+  await expect(barra).toContainText('R$ 3.947,46')
+  await digitar(page, 'Renda bruta mensal', '11000')
+  await expect(barra).toBeVisible() // continua à vista depois de digitar
+
+  await barra.getByRole('link', { name: 'Ver detalhes' }).click()
+  await expect(cartao(page, 'SAC')).toBeInViewport()
+  await expect(barra).toBeHidden() // some quando o resultado aparece
+})
+
+test('computador: os botões do fim do formulário ficam alcançáveis com as seções abertas', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'No celular o formulário não é fixo')
+  await page.setViewportSize({ width: 1280, height: 640 })
+  await page.goto(LINK_PADRAO)
+  await page.locator('summary').filter({ hasText: 'Condições do banco' }).click()
+  await page.locator('summary').filter({ hasText: 'Imóvel na planta' }).click()
+
+  const whatsapp = page.getByRole('link', { name: 'Enviar resumo no WhatsApp' })
+  await whatsapp.scrollIntoViewIfNeeded()
+  await expect(whatsapp).toBeInViewport()
+  // O formulário rolou por dentro; a página continua no topo, com o resultado ao lado.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  await expect(whatsapp).toHaveAttribute('href', /^https:\/\/wa\.me\/\?text=/)
+})
+
 test('rodapé com o autor e links de contato', async ({ page }) => {
   await page.goto('/')
   const contato = page.getByRole('navigation', { name: 'Contato' })
@@ -135,7 +164,7 @@ test('corretor: taxa pela renda, imóvel máximo e resumo para o cliente', async
 
   if (browserName === 'chromium') {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-    await page.getByRole('button', { name: 'Copiar resumo para o cliente' }).click()
+    await page.getByRole('button', { name: 'Copiar resumo' }).click()
     const resumo = await page.evaluate(() => navigator.clipboard.readText())
     expect(resumo).toContain('Simulação de financiamento imobiliário')
     expect(resumo).toContain('8,16% ao ano')

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { BarraResultado } from './components/BarraResultado'
 import { Formulario } from './components/Formulario'
 import { Glossario } from './components/Glossario'
 import { PainelAmortizacaoExtra } from './components/PainelAmortizacaoExtra'
@@ -33,27 +34,42 @@ function Painel({ titulo, acao, children }: { titulo: string; acao?: ReactNode; 
 }
 
 export default function App() {
-  const { valores, alterar, erros, resultado } = useSimulacao()
+  const { valores, alterar, formatar, reiniciar, erros, resultado } = useSimulacao()
   // Um único seletor para composição e tabela: as duas mostram o mesmo sistema.
   const [sistema, setSistema] = useState<Sistema>('SAC')
   const detalhe = resultado ? (sistema === 'SAC' ? resultado.sac : resultado.price) : null
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 lg:pb-0">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-5">
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Simulador de financiamento imobiliário</h1>
-          <p className="text-sm text-slate-600">Compare SAC e PRICE e veja se a parcela cabe na sua renda.</p>
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4">
+          <img src="/favicon.svg" alt="" className="size-10 shrink-0" />
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Simulador de financiamento imobiliário</h1>
+            <p className="text-sm text-slate-600">
+              Parcela, imóvel máximo e evolução de obra: compare SAC e PRICE e envie ao cliente.
+            </p>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[20rem_1fr]">
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          <Formulario valores={valores} erros={erros} alterar={alterar} resultado={resultado} />
+        {/* No computador o formulário acompanha a rolagem. Como ele pode ser mais alto que a
+            tela (seções abertas), rola por dentro: sem isso, os botões do fim ficavam inalcançáveis. */}
+        <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:rounded-2xl">
+          <Formulario
+            valores={valores}
+            erros={erros}
+            alterar={alterar}
+            formatar={formatar}
+            reiniciar={reiniciar}
+            resultado={resultado}
+          />
         </div>
 
         {resultado && detalhe ? (
-          <div className="min-w-0 space-y-6">
+          <div id="resultado" className="min-w-0 scroll-mt-4 space-y-6">
+            <BarraResultado resultado={resultado} alvoId="resultado" />
             <ResumoComparacao resultado={resultado} />
 
             {resultado.obra && (
