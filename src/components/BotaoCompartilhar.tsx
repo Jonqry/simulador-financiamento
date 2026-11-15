@@ -35,10 +35,7 @@ export function BotaoCopiar({ rotulo, rotuloCopiado, obterTexto, desabilitado, v
     }
   }
 
-  const estilo =
-    variante === 'primario'
-      ? 'bg-slate-900 text-white hover:bg-slate-700 disabled:bg-slate-300'
-      : 'border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 disabled:text-slate-400'
+  const estilo = variante === 'primario' ? 'botao-principal' : 'botao-linha'
 
   return (
     <div>
@@ -46,11 +43,11 @@ export function BotaoCopiar({ rotulo, rotuloCopiado, obterTexto, desabilitado, v
         type="button"
         onClick={copiar}
         disabled={desabilitado}
-        className={`w-full rounded-lg px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed ${estilo}`}
+        className={`botao w-full px-3 py-2.5 text-sm ${estilo}`}
       >
         {estado === 'copiado' ? rotuloCopiado : rotulo}
       </button>
-      <p role="status" className="mt-1 min-h-4 text-xs text-slate-500">
+      <p role="status" className="estreito mt-1 min-h-4 text-xs text-tinta-suave">
         {estado === 'falhou' && mensagemFalha}
       </p>
     </div>

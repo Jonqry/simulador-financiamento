@@ -283,17 +283,22 @@ Cada tecla recalcula 2 tabelas de até 420 linhas e redesenha 2 gráficos.
 
 ## 16. Cores e acessibilidade dos gráficos
 
-- **Paleta validada para daltonismo**: SAC azul `#2a78d6`, PRICE laranja
-  `#eb6834` (azul × laranja continua bem distinto com protanopia e
+- **Paleta validada para daltonismo**: SAC azul `#1e5a8c`, PRICE terracota
+  `#c4572a` (azul × laranja continua bem distinto com protanopia e
   deuteranopia, ao contrário de verde × vermelho). Verifiquei com um script de diferença perceptual (ΔE em
-  OKLab sob simulação de daltonismo) em vez de escolher no olho.
+  OKLab sob simulação de daltonismo) em vez de escolher no olho: o par mais
+  próximo, SAC × PRICE sob protanopia, fica em ΔE 17,8 (o mínimo que adotei é 8).
 - **A cor segue o sistema.** SAC é azul em todo lugar: cartão, gráfico,
-  seletor. Juros e amortização usam outras cores (violeta e aqua) para não
-  serem confundidos com SAC/PRICE.
+  seletor. Na composição da parcela, amortização é grafite, juros é amarelo e
+  seguros/taxa é cinza: cores que não se confundem com SAC/PRICE e se
+  separam pela claridade, então funcionam com qualquer tipo de daltonismo.
+- **Amarelo com contorno escuro.** O amarelo puro some sobre o fundo claro,
+  então a linha e a legenda dos juros usam um dourado mais escuro (`#a8840f`)
+  e o amarelo fica só no preenchimento.
 - **Cores de status reservadas** (verde/amarelo/vermelho) só para o alerta de
   renda, e sempre com ícone + texto ("Acima do limite"), nunca cor sozinha.
 - **Texto nunca na cor da série**: valores e legendas são cinza-escuro; a
-  identidade vem da bolinha colorida ao lado.
+  identidade vem da marcador colorido ao lado.
 - **A tabela é a alternativa acessível aos gráficos**: cada `<figure>` tem uma
   legenda para leitores de tela apontando para ela.
 
@@ -592,3 +597,34 @@ um elemento sticky mais alto que a janela esconde o próprio final: os botões
 de envio ficavam inalcançáveis até o fim da página. Agora o formulário rola
 por dentro (`max-height` + `overflow-y`), e um teste E2E com janela baixa
 (640 px) garante que o botão do WhatsApp continua alcançável.
+
+## 31. Identidade visual: a mesma planta baixa do portfólio
+
+A primeira versão usava os padrões de qualquer template (fundo branco, cartões
+arredondados com sombra, cinza-azulado do Tailwind) e não tinha cara de nada.
+Agora o simulador segue a identidade do meu portfólio, que é a planta baixa
+de um lançamento imobiliário, porque é o que eu mostro aos clientes como
+corretor:
+
+- **Fonte Archivo** (variável, com eixo de largura): títulos largos como o
+  letreiro de um lançamento, legendas estreitas como as cotas escritas dentro
+  da planta. Vem do `@fontsource-variable/archivo`, sem depender do Google Fonts.
+- **Grafite, cinza de cota e piso claro** no lugar do branco: os painéis são
+  "pranchas" com uma parede (borda grossa) em cima, sem caixa nem sombra.
+- **Marca-texto amarelo** só no número que o corretor mostra primeiro, a
+  1ª parcela, e no hover da tabela. Usado em todo lugar, ele perderia a função.
+- **Os tokens são os mesmos do portfólio** (`--papel`, `--tinta`, `--sol`…),
+  definidos no `@theme` do Tailwind, então as classes viram `bg-papel`,
+  `text-tinta`, `border-linha`.
+
+**O que mudou no layout por causa de um teste.** O cabeçalho largo de página
+inteira empurrava o formulário para baixo, e o teste E2E da janela baixa
+(seção 30) falhou: com 640 px de altura, o botão do WhatsApp só aparecia
+depois de rolar a página. Em vez de afrouxar o teste, levei o título para a
+coluna da direita no computador; no celular a ordem continua título,
+formulário e resultado.
+
+**O que não mudou:** nenhum texto, rótulo ou papel ARIA. Os testes procuram
+elementos pelo que o usuário vê e lê, não por classe CSS, então trocar o
+visual inteiro não exigiu mexer em nenhum teste.
+

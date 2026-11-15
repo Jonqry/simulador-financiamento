@@ -54,11 +54,11 @@ const TERMOS: { termo: string; explicacao: string }[] = [
 /** Termos explicados em linguagem de cliente: o corretor pode usar na conversa. */
 export function Glossario() {
   return (
-    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+    <dl className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
       {TERMOS.map(({ termo, explicacao }) => (
-        <div key={termo}>
-          <dt className="text-sm font-semibold text-slate-900">{termo}</dt>
-          <dd className="text-sm text-slate-600">{explicacao}</dd>
+        <div key={termo} className="border-l-[1.5px] border-linha pl-4">
+          <dt className="largo font-bold">{termo}</dt>
+          <dd className="mt-1 text-sm text-tinta-suave">{explicacao}</dd>
         </div>
       ))}
     </dl>

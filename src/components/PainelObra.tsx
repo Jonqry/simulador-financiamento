@@ -5,10 +5,10 @@ const GraficoObra = lazy(() => import('./graficos/Graficos').then((m) => ({ defa
 
 function Indicador({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
-      <p className="text-xs text-slate-600">{rotulo}</p>
-      <p className="mt-0.5 text-lg font-semibold text-slate-900 tabular-nums">{valor}</p>
-      {detalhe && <p className="text-xs text-slate-500">{detalhe}</p>}
+    <div className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+      <p className="estreito text-sm text-tinta-suave">{rotulo}</p>
+      <p className="largo mt-1 text-xl font-extrabold tabular-nums">{valor}</p>
+      {detalhe && <p className="estreito text-sm text-tinta-suave">{detalhe}</p>}
     </div>
   )
 }
@@ -43,11 +43,11 @@ export function PainelObra({ obra, resultado }: PainelObraProps) {
         />
       </div>
 
-      <Suspense fallback={<div className="h-64 animate-pulse rounded-lg bg-slate-100" aria-label="Carregando gráfico" />}>
+      <Suspense fallback={<div className="grade-planta h-64 animate-pulse bg-piso" aria-label="Carregando gráfico" />}>
         <GraficoObra parcelas={parcelas} />
       </Suspense>
 
-      <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+      <div className="border-l-4 border-sol bg-branco p-3 text-sm">
         <p>
           <strong>Nessa fase a dívida não diminui:</strong> paga-se juros sobre o valor já repassado à construtora, mais
           seguros e taxa. A amortização começa depois das chaves, com a 1ª parcela de{' '}
@@ -60,7 +60,7 @@ export function PainelObra({ obra, resultado }: PainelObraProps) {
           <strong className="tabular-nums">{formatarBRL(custoTotal.PRICE)}</strong> na PRICE.
         </p>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="estreito text-sm text-tinta-suave">
         Modelo com evolução linear da obra; o cronograma real de medições da construtora pode variar. Sem correção pela TR.
       </p>
     </div>

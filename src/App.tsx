@@ -18,14 +18,14 @@ const GraficoSaldo = lazy(() => carregarGraficos().then((m) => ({ default: m.Gra
 const GraficoComposicao = lazy(() => carregarGraficos().then((m) => ({ default: m.GraficoComposicao })))
 
 function CarregandoGrafico() {
-  return <div className="h-80 animate-pulse rounded-lg bg-slate-100" aria-label="Carregando gráfico" />
+  return <div className="grade-planta h-80 animate-pulse bg-piso" aria-label="Carregando gráfico" />
 }
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-900">{titulo}</h2>
+    <section className="bloco">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold">{titulo}</h2>
         {acao}
       </div>
       {children}
@@ -41,22 +41,41 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-16 lg:pb-0">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4">
-          <img src="/favicon.svg" alt="" className="size-10 shrink-0" />
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Simulador de financiamento imobiliário</h1>
-            <p className="text-sm text-slate-600">
-              Parcela, imóvel máximo e evolução de obra: compare SAC e PRICE e envie ao cliente.
-            </p>
+      <header>
+        <div className="border-b-2 border-tinta">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+            <a
+              href="https://joaovictorvarela.vercel.app"
+              className="largo flex items-center gap-2.5 font-extrabold text-tinta no-underline"
+            >
+              <img src="/favicon.svg" alt="" className="size-7 shrink-0" />
+              João Victor Varela
+            </a>
+            <a
+              href="https://joaovictorvarela.vercel.app/projetos"
+              className="estreito text-sm font-medium text-tinta-suave hover:text-tinta"
+            >
+              Ver outros projetos
+            </a>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[20rem_1fr]">
+      {/* No computador o título fica na coluna da direita, para o formulário fixo começar logo
+          abaixo da faixa do topo: com um cabeçalho alto, em telas baixas os botões do fim do
+          formulário só apareciam depois de rolar a página. */}
+      <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[22rem_1fr]">
+        <div className="grade-planta -mx-4 px-4 pt-2 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:px-0">
+          <h1 className="text-3xl font-extrabold sm:text-4xl">Simulador de financiamento imobiliário</h1>
+          <p className="mt-3 max-w-2xl text-tinta-suave sm:text-lg">
+            Parcela, imóvel máximo e evolução de obra: compare SAC e PRICE e envie ao cliente.
+          </p>
+          <div className="cota-linha mt-5" aria-hidden />
+        </div>
+
         {/* No computador o formulário acompanha a rolagem. Como ele pode ser mais alto que a
             tela (seções abertas), rola por dentro: sem isso, os botões do fim ficavam inalcançáveis. */}
-        <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:rounded-2xl">
+        <div className="lg:sticky lg:top-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
           <Formulario
             valores={valores}
             erros={erros}
@@ -68,7 +87,7 @@ export default function App() {
         </div>
 
         {resultado && detalhe ? (
-          <div id="resultado" className="min-w-0 scroll-mt-4 space-y-6">
+          <div id="resultado" className="min-w-0 scroll-mt-4 space-y-10 lg:col-start-2 lg:row-start-2">
             <BarraResultado resultado={resultado} alvoId="resultado" />
             <ResumoComparacao resultado={resultado} />
 
@@ -114,58 +133,65 @@ export default function App() {
             </Painel>
           </div>
         ) : (
-          <div className="flex min-h-64 items-center justify-center rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+          <div className="grade-planta flex min-h-64 items-center lg:col-start-2 lg:row-start-2 justify-center border-2 border-dashed border-linha p-8 text-center text-tinta-suave">
             Corrija os campos destacados para ver a simulação.
           </div>
         )}
       </main>
 
-      <section className="mx-auto max-w-6xl px-4 pb-6">
-        <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <summary className="cursor-pointer font-semibold text-slate-900">Entenda os termos</summary>
+      <section className="mx-auto max-w-6xl px-4 pt-4 pb-10">
+        <details className="group bloco">
+          <summary className="largo flex cursor-pointer list-none items-center justify-between gap-2 text-xl font-extrabold">
+            Entenda os termos
+            <span aria-hidden className="text-base text-tinta-suave transition group-open:rotate-180">
+              ▾
+            </span>
+          </summary>
           <div className="mt-4">
             <Glossario />
           </div>
         </details>
       </section>
 
-      <footer className="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-500">
-        <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-700">
-            Feito por <strong className="font-semibold text-slate-900">João Victor</strong>, corretor de imóveis e
-            desenvolvedor front-end.
+      <footer className="border-t-2 border-tinta">
+        <div className="mx-auto max-w-6xl px-4 pt-6 pb-8 text-xs text-tinta-suave">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">
+              Feito por <strong className="font-semibold text-tinta">João Victor</strong>, corretor de imóveis e
+              desenvolvedor front-end.
+            </p>
+            <nav aria-label="Contato" className="flex gap-5 text-sm">
+              <a
+                className="link-texto"
+                href="https://www.linkedin.com/in/joaovictorvarela/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                LinkedIn
+              </a>
+              <a
+                className="link-texto"
+                href="https://github.com/Jonqry"
+                target="_blank"
+                rel="noreferrer"
+              >
+                GitHub
+              </a>
+              <a
+                className="link-texto"
+                href="https://github.com/Jonqry/simulador-financiamento"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Código
+              </a>
+            </nav>
+          </div>
+          <p className="estreito mt-4 max-w-4xl">
+            Simulação educativa: seguros e taxa usam os valores informados, e o cálculo não inclui correção pela TR nem
+            custos de contratação (avaliação, registro, ITBI). Os valores reais dependem das condições de cada banco.
           </p>
-          <nav aria-label="Contato" className="flex gap-4 text-sm font-medium">
-            <a
-              className="text-sac underline-offset-2 hover:underline"
-              href="https://www.linkedin.com/in/joaovictorvarela/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              LinkedIn
-            </a>
-            <a
-              className="text-sac underline-offset-2 hover:underline"
-              href="https://github.com/Jonqry"
-              target="_blank"
-              rel="noreferrer"
-            >
-              GitHub
-            </a>
-            <a
-              className="text-sac underline-offset-2 hover:underline"
-              href="https://github.com/Jonqry/simulador-financiamento"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Código
-            </a>
-          </nav>
         </div>
-        <p className="mt-4">
-          Simulação educativa: seguros e taxa usam os valores informados, e o cálculo não inclui correção pela TR nem
-          custos de contratação (avaliação, registro, ITBI). Os valores reais dependem das condições de cada banco.
-        </p>
       </footer>
     </div>
   )

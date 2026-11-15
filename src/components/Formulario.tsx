@@ -40,13 +40,13 @@ function Secao({ titulo, resumo, temErro, children }: { titulo: string; resumo?:
   }, [temErro])
 
   return (
-    <details ref={ref} className="group rounded-lg border border-slate-200 open:bg-slate-50/60">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-slate-800">
+    <details ref={ref} className="group rounded-xs border-[1.5px] border-linha open:border-tinta open:bg-papel">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold">
         <span>
           {titulo}
-          {resumo && <span className="block text-xs font-normal text-slate-500">{resumo}</span>}
+          {resumo && <span className="estreito block text-sm font-normal text-tinta-suave">{resumo}</span>}
         </span>
-        <span aria-hidden className="text-slate-400 transition group-open:rotate-180">
+        <span aria-hidden className="text-tinta-suave transition group-open:rotate-180">
           ▾
         </span>
       </summary>
@@ -120,16 +120,16 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
 
   return (
     <form
-      className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+      className="space-y-4 rounded-xs border-2 border-tinta bg-branco p-5"
       onSubmit={(evento) => evento.preventDefault()}
       aria-label="Dados do financiamento"
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold whitespace-nowrap text-slate-900">Dados do financiamento</h2>
+        <h2 className="text-lg font-extrabold whitespace-nowrap">Dados do financiamento</h2>
         <button
           type="button"
           onClick={reiniciar}
-          className="rounded-md py-1 text-xs font-medium whitespace-nowrap text-slate-600 underline underline-offset-2 hover:text-slate-900"
+          className="estreito py-1 text-sm font-medium whitespace-nowrap text-tinta-suave underline underline-offset-4 hover:bg-sol hover:text-tinta"
           title="Volta aos valores iniciais para simular outro cliente"
         >
           Recomeçar
@@ -173,7 +173,7 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
         resumo={resumoCondicoes}
         temErro={Boolean(erros.cotaFinanciamento || erros.mipMensal || erros.dfiMensal || erros.taxaAdministracao)}
       >
-        <p className="text-xs text-slate-600">
+        <p className="estreito text-sm text-tinta-suave">
           Valores de exemplo; use os da proposta do banco. O MIP varia com a idade. Deixe seguros e taxa em branco para
           ignorar.
         </p>
@@ -207,7 +207,7 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
         }
         temErro={Boolean(erros.obraMeses || erros.obraExecutada)}
       >
-        <p className="text-xs text-slate-600">
+        <p className="estreito text-sm text-tinta-suave">
           Na planta, até as chaves você paga juros sobre o valor que o banco já repassou à construtora, mais seguros e
           taxa. A amortização começa depois.
         </p>
@@ -228,14 +228,14 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
         <Campo rotulo="Valor extra" prefixo="R$" {...campo('extraValor')} dica="Ex.: saldo do FGTS ou 13º salário." />
         <Campo rotulo="Pagar no mês" sufixo="do contrato" {...campo('extraMes')} />
         <div>
-          <label htmlFor={idRepetir} className="block text-sm font-medium text-slate-700">
+          <label htmlFor={idRepetir} className="block text-sm font-semibold">
             Repetir
           </label>
           <select
             id={idRepetir}
             value={valores.extraIntervalo}
             onChange={(evento) => alterar('extraIntervalo', evento.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-sac/30"
+            className="mt-1 w-full rounded-xs border-[1.5px] border-linha bg-branco px-3 py-2 font-medium text-tinta"
           >
             {OPCOES_REPETICAO.map((opcao) => (
               <option key={opcao.valor} value={opcao.valor}>
@@ -246,19 +246,19 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
         </div>
       </Secao>
 
-      <div className="space-y-2 border-t border-slate-100 pt-4">
-        <p className="text-sm font-medium text-slate-700">Enviar para o cliente</p>
+      <div className="space-y-2 border-t-2 border-tinta pt-4">
+        <p className="text-sm font-semibold">Enviar para o cliente</p>
         {resultado ? (
           <a
             href={`https://wa.me/?text=${encodeURIComponent(textoResumo(valores, resultado))}`}
             target="_blank"
             rel="noreferrer"
-            className="block w-full rounded-lg bg-slate-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-slate-700"
+            className="botao botao-principal w-full px-4 py-2.5 text-sm"
           >
             Enviar resumo no WhatsApp
           </a>
         ) : (
-          <button type="button" disabled className="w-full cursor-not-allowed rounded-lg bg-slate-300 px-4 py-2.5 text-sm font-semibold text-white">
+          <button type="button" disabled className="botao w-full px-4 py-2.5 text-sm">
             Enviar resumo no WhatsApp
           </button>
         )}

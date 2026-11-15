@@ -17,8 +17,8 @@ export function GraficoObra({ parcelas }: { parcelas: ParcelaObra[] }) {
     <figure>
       <Legenda
         itens={[
-          { nome: 'Juros de obra', cor: CORES.juros },
-          { nome: 'Seguros e taxa', cor: CORES.encargos },
+          { nome: 'Juros de obra', cor: CORES.jurosContorno },
+          { nome: 'Seguros e taxa', cor: CORES.encargosContorno },
         ]}
       />
       <div className="h-56">
@@ -48,25 +48,25 @@ export function GraficoObra({ parcelas }: { parcelas: ParcelaObra[] }) {
                 const ponto = payload?.[0]?.payload as PontoObra | undefined
                 if (!active || !ponto) return null
                 return (
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-md">
-                    <p className="font-medium text-slate-900">
+                  <div className="rounded-xs border-2 border-tinta bg-branco px-3 py-2 text-sm">
+                    <p className="font-bold">
                       Mês {ponto.mes} · obra em {formatarPercentual(ponto.percentualObra)}
                     </p>
-                    <p className="text-slate-600">
-                      Juros: <span className="text-slate-900 tabular-nums">{formatarBRL(ponto.juros)}</span>
+                    <p className="text-tinta-suave">
+                      Juros: <span className="font-medium text-tinta tabular-nums">{formatarBRL(ponto.juros)}</span>
                     </p>
-                    <p className="text-slate-600">
-                      Seguros e taxa: <span className="text-slate-900 tabular-nums">{formatarBRL(ponto.encargos)}</span>
+                    <p className="text-tinta-suave">
+                      Seguros e taxa: <span className="font-medium text-tinta tabular-nums">{formatarBRL(ponto.encargos)}</span>
                     </p>
-                    <p className="border-t border-slate-100 font-medium text-slate-600">
-                      Total: <span className="text-slate-900 tabular-nums">{formatarBRL(ponto.juros + ponto.encargos)}</span>
+                    <p className="mt-0.5 border-t-[1.5px] border-linha pt-0.5 font-bold">
+                      Total: <span className="font-medium text-tinta tabular-nums">{formatarBRL(ponto.juros + ponto.encargos)}</span>
                     </p>
                   </div>
                 )
               }}
             />
-            <Area dataKey="juros" stackId="obra" stroke={CORES.juros} strokeWidth={2} fill={CORES.juros} fillOpacity={0.15} isAnimationActive={false} />
-            <Area dataKey="encargos" stackId="obra" stroke={CORES.encargos} strokeWidth={2} fill={CORES.encargos} fillOpacity={0.2} isAnimationActive={false} />
+            <Area dataKey="juros" stackId="obra" stroke={CORES.jurosContorno} strokeWidth={2} fill={CORES.juros} fillOpacity={0.7} isAnimationActive={false} />
+            <Area dataKey="encargos" stackId="obra" stroke={CORES.encargosContorno} strokeWidth={2} fill={CORES.encargos} fillOpacity={0.6} isAnimationActive={false} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

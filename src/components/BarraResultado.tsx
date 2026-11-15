@@ -32,21 +32,21 @@ export function BarraResultado({ resultado, alvoId }: BarraResultadoProps) {
   return (
     <aside
       aria-label="Resumo da simulação"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-2 shadow-[0_-4px_12px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-tinta bg-papel/95 px-4 py-2 backdrop-blur lg:hidden"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <dl className="flex gap-4 text-sm">
           {(['sac', 'price'] as const).map((sistema) => (
             <div key={sistema}>
-              <dt className="flex items-center gap-1 text-xs text-slate-600">
-                <span aria-hidden className={`size-2 rounded-full ${sistema === 'sac' ? 'bg-sac' : 'bg-price'}`} />
+              <dt className="estreito flex items-center gap-1.5 text-xs text-tinta-suave">
+                <span aria-hidden className={`marcador ${sistema === 'sac' ? 'bg-sac' : 'bg-price'}`} />
                 {sistema === 'sac' ? 'SAC, 1ª parcela' : 'PRICE'}
               </dt>
-              <dd className="font-semibold text-slate-900 tabular-nums">{formatarBRL(resultado[sistema].custos.primeiraParcela)}</dd>
+              <dd className="font-bold tabular-nums">{formatarBRL(resultado[sistema].custos.primeiraParcela)}</dd>
             </div>
           ))}
         </dl>
-        <a href={`#${alvoId}`} className="shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+        <a href={`#${alvoId}`} className="botao botao-principal shrink-0 px-3 py-2 text-sm">
           Ver detalhes
         </a>
       </div>

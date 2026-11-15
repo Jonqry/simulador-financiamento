@@ -34,11 +34,11 @@ export function SugestaoTaxa({ rendaTexto, taxaTexto, valorImovelTexto, usarTaxa
   const taxaAtual = parseNumeroBR(taxaTexto)
   const emUso = sugestao.tipo === 'mcmv' && taxaAtual !== null && Math.abs(taxaAtual - sugestao.taxaAnual * 100) < 0.00005
 
-  const seletor = 'rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800'
+  const seletor = 'rounded-xs border-[1.5px] border-linha bg-branco px-2 py-1 text-sm text-tinta'
 
   return (
-    <section className="rounded-lg border border-sac/30 bg-sac/5 p-3 text-sm" aria-labelledby={`${id}-titulo`}>
-      <p id={`${id}-titulo`} className="font-medium text-slate-900">
+    <section className="rounded-xs border-[1.5px] border-dashed border-tinta-suave bg-papel p-3 text-sm" aria-labelledby={`${id}-titulo`}>
+      <p id={`${id}-titulo`} className="font-semibold">
         Taxa de referência para essa renda
       </p>
 
@@ -65,19 +65,19 @@ export function SugestaoTaxa({ rendaTexto, taxaTexto, valorImovelTexto, usarTaxa
               <option value="sim">Cotista do FGTS (3+ anos)</option>
             </select>
           </div>
-          <p className="mt-2 text-slate-700">
+          <p className="mt-2">
             Minha Casa, Minha Vida · <strong>Faixa {sugestao.faixa}</strong>:{' '}
             <strong className="tabular-nums">{formatarPercentual(sugestao.taxaAnual)} ao ano</strong>, imóvel de até{' '}
             {formatarBRL(sugestao.tetoImovel)}
             {sugestao.faixa <= 2 && ' (varia por cidade)'}.
           </p>
           {acimaDoTeto && (
-            <p className="mt-1 text-xs font-medium text-slate-800">
+            <p className="estreito mt-1 text-sm font-semibold">
               O imóvel informado passa do teto da faixa: fora do MCMV, valem as taxas de mercado.
             </p>
           )}
           {emUso ? (
-            <p className="mt-2 text-xs font-medium text-slate-800">
+            <p className="estreito mt-2 text-sm font-semibold">
               <span aria-hidden>✓</span> Você já está usando esta taxa.
             </p>
           ) : (
@@ -85,21 +85,21 @@ export function SugestaoTaxa({ rendaTexto, taxaTexto, valorImovelTexto, usarTaxa
               type="button"
               // formatarNumeroBR evita o ruído de ponto flutuante: 0.0766 × 100 = 7.659999...
               onClick={() => usarTaxa(formatarNumeroBR(sugestao.taxaAnual * 100))}
-              className="mt-2 rounded-md bg-sac px-3 py-1 text-xs font-semibold text-white hover:bg-sac/90"
+              className="botao botao-principal mt-2 px-3 py-1 text-sm"
             >
               Usar {formatarPercentual(sugestao.taxaAnual)}
             </button>
           )}
         </>
       ) : (
-        <p className="mt-1 text-slate-700">
+        <p className="mt-1">
           Renda acima do Minha Casa, Minha Vida. Taxas de mercado de{' '}
           <strong className="tabular-nums">{formatarPercentual(sugestao.minima)}</strong> a{' '}
           <strong className="tabular-nums">{formatarPercentual(sugestao.maxima)}</strong> ao ano + TR, conforme o banco.
         </p>
       )}
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="estreito mt-2 text-xs text-tinta-suave">
         Referência de {ATUALIZACAO_TAXAS.data}. A taxa final depende do banco e da análise de crédito.
       </p>
     </section>

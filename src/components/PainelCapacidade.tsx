@@ -34,24 +34,24 @@ export function PainelCapacidade({ capacidade, entrada, cota }: PainelCapacidade
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         {(['SAC', 'PRICE'] as const).map((sistema) => (
-          <div key={sistema} className="rounded-lg border border-slate-200 p-4">
-            <p className="flex items-center gap-1.5 text-sm text-slate-600">
-              <span aria-hidden className={`size-2 rounded-full ${sistema === 'SAC' ? 'bg-sac' : 'bg-price'}`} />
+          <div key={sistema} className="rounded-xs border-[1.5px] border-linha bg-branco p-4">
+            <p className="flex items-center gap-1.5 text-sm text-tinta-suave">
+              <span aria-hidden className={`marcador ${sistema === 'SAC' ? 'bg-sac' : 'bg-price'}`} />
               No {sistema === 'SAC' ? 'SAC' : 'PRICE'}, imóvel de até
             </p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
+            <p className="largo mt-1 text-3xl font-extrabold tabular-nums">
               {formatarBRL(capacidade[sistema].valorMaximoImovel)}
             </p>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="estreito mt-1 text-sm text-tinta-suave">
               financiando {formatarBRL(capacidade[sistema].financiamentoMaximo)} + entrada de {formatarBRL(entrada)}
             </p>
-            <p className="mt-2 text-sm text-slate-700">
+            <p className="mt-3 border-t border-dashed border-linha pt-3 text-sm">
               <Explicacao capacidade={capacidade[sistema]} entrada={entrada} cota={cota} />
             </p>
           </div>
         ))}
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="estreito text-sm text-tinta-suave">
         Considera a renda, a entrada, a taxa, o prazo e as condições do banco informadas no formulário. Cada banco tem sua política
         de crédito: é uma estimativa para orientar a busca, não uma aprovação.
       </p>

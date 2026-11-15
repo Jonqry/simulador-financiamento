@@ -1,18 +1,181 @@
 @import "tailwindcss";
 
 /*
- * Tokens de cor. Os mesmos valores estão em src/cores.ts (para o Recharts).
- * Status (bom/atenção/crítico) é reservado ao alerta de renda e nunca é usado
- * como cor de série.
+ * Identidade: a mesma do portfólio (joaovictorvarela.vercel.app), uma planta
+ * baixa de lançamento imobiliário. Paredes em grafite, cotas em cinza, piso
+ * claro e o marca-texto amarelo que o corretor usa para destacar o número
+ * que importa para o cliente.
+ *
+ * As cores das séries também estão em src/cores.ts (o Recharts precisa delas
+ * em JS). Status (bom/atenção/crítico) é reservado ao alerta de renda e nunca
+ * é usado como cor de série.
  */
 @theme {
-  --color-sac: #2a78d6;
-  --color-price: #eb6834;
-  --color-bom: #0ca30c;
-  --color-atencao: #fab219;
-  --color-critico: #d03b3b;
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+
+  --color-papel: #f4f6f5;
+  --color-piso: #e4e9e6;
+  --color-tinta: #22292b;
+  --color-tinta-suave: #55636a;
+  --color-linha: #8d9a9e;
+  --color-sol: #f5d547;
+  --color-azul: #1e5a8c;
+  --color-branco: #ffffff;
+
+  --color-sac: #1e5a8c;
+  --color-price: #c4572a;
+
+  --color-bom: #2e7d4f;
+  --color-atencao: #d9a406;
+  --color-critico: #b23a2e;
 }
 
-body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+@layer base {
+  body {
+    @apply bg-papel text-tinta antialiased;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+  }
+
+  /* Títulos largos, como o letreiro de um lançamento */
+  h1,
+  h2,
+  .largo {
+    font-stretch: 118%;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  /* Texto estreito, como as legendas escritas dentro da planta */
+  .estreito {
+    font-stretch: 78%;
+    letter-spacing: 0.01em;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-tinta);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--color-sol);
+  }
+
+  ::selection {
+    background: var(--color-sol);
+    color: var(--color-tinta);
+  }
+}
+
+@layer components {
+  /* O marca-texto: só no número que o corretor mostra primeiro ao cliente. */
+  .marca-texto {
+    background: linear-gradient(transparent 52%, var(--color-sol) 52%, var(--color-sol) 92%, transparent 92%);
+    padding: 0 0.15em;
+  }
+
+  /* Papel milimetrado do cabeçalho e do estado vazio. */
+  .grade-planta {
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--color-linha) 18%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-linha) 18%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Prancha: seção com parede em cima, sem caixa nem sombra. */
+  .bloco {
+    border-top: 3px solid var(--color-tinta);
+    padding-top: 1rem;
+  }
+
+  /* Linha de cota: a régua usada no portfólio, com as marcações nas pontas. */
+  .cota-linha {
+    position: relative;
+    height: 14px;
+    border-bottom: 1.2px solid var(--color-linha);
+  }
+  .cota-linha::before,
+  .cota-linha::after {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    width: 1.2px;
+    height: 12px;
+    background: var(--color-linha);
+  }
+  .cota-linha::before {
+    left: 0;
+  }
+  .cota-linha::after {
+    right: 0;
+  }
+
+  /* Botões iguais aos do portfólio: grafite que vira marca-texto no hover. */
+  .botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2px solid var(--color-tinta);
+    border-radius: 2px;
+    font-weight: 600;
+    font-stretch: 90%;
+    text-decoration: none;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+  .botao:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .botao:disabled {
+    cursor: not-allowed;
+    border-color: var(--color-linha);
+    color: var(--color-tinta-suave);
+    background: var(--color-piso);
+  }
+  .botao-principal {
+    background: var(--color-tinta);
+    color: var(--color-branco);
+  }
+  .botao-principal:hover:not(:disabled) {
+    background: var(--color-sol);
+    color: var(--color-tinta);
+  }
+  .botao-linha {
+    background: transparent;
+    color: var(--color-tinta);
+  }
+  .botao-linha:hover:not(:disabled) {
+    background: var(--color-branco);
+  }
+
+  .link-texto {
+    color: var(--color-azul);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+  }
+  .link-texto:hover {
+    color: var(--color-tinta);
+    background: var(--color-sol);
+  }
+
+  /* Marcador das séries: quadrado, como os marcos da linha do tempo do portfólio. */
+  .marcador {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+}
+
+/* Eixos dos gráficos com a mesma letra estreita das cotas. */
+.recharts-cartesian-axis-tick text {
+  font-stretch: 78%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -27,15 +27,17 @@ export function Campo({ rotulo, valor, aoAlterar, aoSair, erro, prefixo, sufixo,
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-semibold">
         {rotulo}
       </label>
       <div
-        className={`mt-1 flex items-center rounded-lg border bg-white px-3 focus-within:ring-2 ${
-          erro ? 'border-critico focus-within:ring-critico/30' : 'border-slate-300 focus-within:ring-sac/30'
+        className={`mt-1 flex items-center rounded-xs border-[1.5px] bg-branco px-3 transition-shadow ${
+          erro
+            ? 'border-critico focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-critico)_30%,transparent)]'
+            : 'border-linha focus-within:border-tinta focus-within:shadow-[0_0_0_3px_var(--color-sol)]'
         }`}
       >
-        {prefixo && <span className="mr-2 text-sm text-slate-500">{prefixo}</span>}
+        {prefixo && <span className="estreito mr-2 text-sm text-tinta-suave">{prefixo}</span>}
         <input
           id={id}
           type="text"
@@ -46,12 +48,12 @@ export function Campo({ rotulo, valor, aoAlterar, aoSair, erro, prefixo, sufixo,
           onBlur={aoSair}
           aria-invalid={erro ? true : undefined}
           aria-describedby={descricao ? idDescricao : undefined}
-          className="w-full min-w-0 bg-transparent py-2 text-slate-900 tabular-nums outline-none"
+          className="w-full min-w-0 bg-transparent py-2 font-medium text-tinta tabular-nums outline-none focus-visible:shadow-none"
         />
-        {sufixo && <span className="ml-2 text-sm whitespace-nowrap text-slate-500">{sufixo}</span>}
+        {sufixo && <span className="estreito ml-2 text-sm whitespace-nowrap text-tinta-suave">{sufixo}</span>}
       </div>
       {descricao && (
-        <p id={idDescricao} className={`mt-1 text-xs ${erro ? 'font-medium text-critico' : 'text-slate-500'}`}>
+        <p id={idDescricao} className={`estreito mt-1 text-sm leading-snug ${erro ? 'font-semibold text-critico' : 'text-tinta-suave'}`}>
           {descricao}
         </p>
       )}

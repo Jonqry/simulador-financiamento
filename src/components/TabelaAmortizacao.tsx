@@ -12,38 +12,38 @@ interface TabelaAmortizacaoProps {
  */
 export function TabelaAmortizacao({ parcelas, sistema }: TabelaAmortizacaoProps) {
   return (
-    <div className="max-h-[28rem] overflow-auto rounded-lg border border-slate-200" tabIndex={0}>
+    <div className="max-h-[28rem] overflow-auto rounded-xs border-[1.5px] border-linha bg-branco" tabIndex={0}>
       <table className="w-full text-right text-sm whitespace-nowrap tabular-nums">
         <caption className="sr-only">Tabela de amortização no sistema {sistema}</caption>
-        <thead className="sticky top-0 bg-slate-50 text-xs text-slate-600 uppercase">
+        <thead className="estreito sticky top-0 bg-piso text-sm text-tinta-suave shadow-[inset_0_-2px_0_var(--color-tinta)]">
           <tr>
-            <th scope="col" className="px-3 py-2 text-left font-medium">
+            <th scope="col" className="px-3 py-2 text-left font-semibold">
               Mês
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className="px-3 py-2 font-semibold">
               Parcela
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className="px-3 py-2 font-semibold">
               Juros
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className="px-3 py-2 font-semibold">
               Amortização
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className="px-3 py-2 font-semibold">
               Seguros e taxa
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
+            <th scope="col" className="px-3 py-2 font-semibold">
               Saldo devedor
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 text-slate-800">
+        <tbody className="divide-y divide-piso">
           {parcelas.map((p) => (
-            <tr key={p.numero} className="hover:bg-slate-50">
-              <th scope="row" className="px-3 py-1.5 text-left font-normal text-slate-500">
+            <tr key={p.numero} className="hover:bg-sol/35">
+              <th scope="row" className="px-3 py-1.5 text-left font-normal text-tinta-suave">
                 {p.numero}
               </th>
-              <td className="px-3 py-1.5 font-medium">{formatarBRL(p.total)}</td>
+              <td className="px-3 py-1.5 font-semibold">{formatarBRL(p.total)}</td>
               <td className="px-3 py-1.5">{formatarBRL(p.juros)}</td>
               <td className="px-3 py-1.5">{formatarBRL(p.amortizacao)}</td>
               <td className="px-3 py-1.5">{formatarBRL(p.mip + p.dfi + p.taxaAdministracao)}</td>

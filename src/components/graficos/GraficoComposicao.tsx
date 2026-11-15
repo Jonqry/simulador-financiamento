@@ -20,8 +20,8 @@ export function GraficoComposicao({ parcelas }: { parcelas: ParcelaSimulada[] })
       <Legenda
         itens={[
           { nome: 'Amortização', cor: CORES.amortizacao },
-          { nome: 'Juros', cor: CORES.juros },
-          { nome: 'Seguros e taxa', cor: CORES.encargos },
+          { nome: 'Juros', cor: CORES.jurosContorno },
+          { nome: 'Seguros e taxa', cor: CORES.encargosContorno },
         ]}
       />
       <div className="h-72">
@@ -55,8 +55,8 @@ export function GraficoComposicao({ parcelas }: { parcelas: ParcelaSimulada[] })
                     mes={ponto.mes}
                     itens={[
                       { nome: 'Amortização', valor: ponto.amortizacao, cor: CORES.amortizacao },
-                      { nome: 'Juros', valor: ponto.juros, cor: CORES.juros },
-                      { nome: 'Seguros e taxa', valor: ponto.encargos, cor: CORES.encargos },
+                      { nome: 'Juros', valor: ponto.juros, cor: CORES.jurosContorno },
+                      { nome: 'Seguros e taxa', valor: ponto.encargos, cor: CORES.encargosContorno },
                     ]}
                     total={{ nome: 'Parcela', valor: ponto.amortizacao + ponto.juros + ponto.encargos }}
                   />
@@ -70,27 +70,27 @@ export function GraficoComposicao({ parcelas }: { parcelas: ParcelaSimulada[] })
               stroke={CORES.amortizacao}
               strokeWidth={2}
               fill={CORES.amortizacao}
-              fillOpacity={0.25}
+              fillOpacity={0.75}
               isAnimationActive={false}
             />
             <Area
               dataKey="juros"
               name="Juros"
               stackId="parcela"
-              stroke={CORES.juros}
+              stroke={CORES.jurosContorno}
               strokeWidth={2}
               fill={CORES.juros}
-              fillOpacity={0.15}
+              fillOpacity={0.7}
               isAnimationActive={false}
             />
             <Area
               dataKey="encargos"
               name="Seguros e taxa"
               stackId="parcela"
-              stroke={CORES.encargos}
+              stroke={CORES.encargosContorno}
               strokeWidth={2}
               fill={CORES.encargos}
-              fillOpacity={0.2}
+              fillOpacity={0.6}
               isAnimationActive={false}
             />
           </AreaChart>
