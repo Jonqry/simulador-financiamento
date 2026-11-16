@@ -124,8 +124,10 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
       onSubmit={(evento) => evento.preventDefault()}
       aria-label="Dados do financiamento"
     >
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-extrabold whitespace-nowrap">Dados do financiamento</h2>
+      {/* O título e o "Recomeçar" quebram de linha quando não cabem lado a lado: os dois sem
+          quebra alargavam a coluna e criavam rolagem para o lado (celular e barra de rolagem do Windows). */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+        <h2 className="text-lg font-extrabold [font-stretch:100%]">Dados do financiamento</h2>
         <button
           type="button"
           onClick={reiniciar}

@@ -158,7 +158,7 @@ export default function App() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm">
               Feito por <strong className="font-semibold text-tinta">João Victor</strong>, corretor de imóveis e
-              desenvolvedor front-end.
+              desenvolvedor.
             </p>
             <nav aria-label="Contato" className="flex gap-5 text-sm">
               <a
