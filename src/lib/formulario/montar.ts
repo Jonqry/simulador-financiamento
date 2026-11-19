@@ -5,13 +5,12 @@ import {
   simular,
   type Centavos,
   type EntradaSimulacao,
-  type ErrosSimulacao,
   type ResultadoSimulacao,
   type Sistema,
 } from '../financiamento'
 import type { ImovelPelaRenda } from '../imovelPelaRenda'
 import { sistemaPadrao, type Enquadramento } from '../taxasReferencia'
-import { calcularImovelPelaRenda, converter, type EstadoFormulario } from './valores'
+import { calcularImovelPelaRenda, converter, type ErrosFormulario, type EstadoFormulario } from './valores'
 
 /** O que resolveria uma simulação reprovada pela renda. */
 export interface Saidas {
@@ -39,7 +38,7 @@ export type Simulacao =
       saidas?: Saidas
       imovelPelaRenda?: ImovelPelaRenda
     }
-  | { ok: false; erros: ErrosSimulacao; enquadramento: Enquadramento | null }
+  | { ok: false; erros: ErrosFormulario; enquadramento: Enquadramento | null }
 
 const chave = (sistema: Sistema) => (sistema === 'SAC' ? 'sac' : 'price')
 
@@ -48,7 +47,7 @@ export function montarSimulacao({ valores, opcoes }: EstadoFormulario): Simulaca
   const conversao = converter(valores, opcoes)
   if (!conversao.ok) return conversao
 
-  const { entrada, enquadramento } = conversao
+  const { entrada, enquadramento, perfil } = conversao
   const resultado = simular(entrada)
   const sistema = opcoes.sistema ?? sistemaPadrao(enquadramento)
   const outroSistema: Sistema = sistema === 'SAC' ? 'PRICE' : 'SAC'
@@ -69,7 +68,7 @@ export function montarSimulacao({ valores, opcoes }: EstadoFormulario): Simulaca
   if (reprovado) {
     simulacao.saidas = {
       // O mesmo cálculo do modo "quanto posso comprar", com as mesmas opções.
-      imovelMaximo: calcularImovelPelaRenda(entrada, opcoes).valorImovel,
+      imovelMaximo: calcularImovelPelaRenda(entrada, opcoes, perfil).valorImovel,
       entradaNecessaria: entradaNecessaria(sistema, {
         valorImovel: entrada.valorImovel,
         rendaMensal: entrada.rendaMensal,

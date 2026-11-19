@@ -1,8 +1,15 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
-import { formatarBRL, formatarPercentual, type CampoSimulacao, type ErrosSimulacao } from '../lib/financiamento'
+import { formatarBRL, formatarPercentual } from '../lib/financiamento'
 import { formatarNumeroBR, parseNumeroBR } from '../lib/formulario/numero'
 import { paraQueryString } from '../lib/formulario/url'
-import { formatarValor, type EstadoFormulario, type OpcoesFormulario, type ValoresFormulario } from '../lib/formulario/valores'
+import {
+  formatarValor,
+  type CampoFormulario,
+  type ErrosFormulario,
+  type EstadoFormulario,
+  type OpcoesFormulario,
+  type ValoresFormulario,
+} from '../lib/formulario/valores'
 import { gerarResumoCliente } from '../lib/resumoCliente'
 import { descreverPrograma, type Enquadramento } from '../lib/taxasReferencia'
 import type { SimulacaoPronta } from '../hooks/useSimulacao'
@@ -13,11 +20,11 @@ import { ProgramaTaxa } from './ProgramaTaxa'
 interface FormularioProps {
   valores: ValoresFormulario
   opcoes: OpcoesFormulario
-  erros: ErrosSimulacao
-  alterar: (campo: CampoSimulacao, texto: string) => void
+  erros: ErrosFormulario
+  alterar: (campo: CampoFormulario, texto: string) => void
   alterarOpcao: <K extends keyof OpcoesFormulario>(opcao: K, valor: OpcoesFormulario[K]) => void
   usarTaxaAutomatica: () => void
-  formatar: (campo: CampoSimulacao) => void
+  formatar: (campo: CampoFormulario) => void
   reiniciar: () => void
   enquadramento: Enquadramento | null
   simulacao: SimulacaoPronta | null
@@ -161,7 +168,7 @@ export function Formulario({
   simulacao,
 }: FormularioProps) {
   const idRepetir = useId()
-  const campo = (nome: CampoSimulacao) => ({
+  const campo = (nome: CampoFormulario) => ({
     valor: valores[nome],
     aoAlterar: (texto: string) => alterar(nome, texto),
     aoSair: () => formatar(nome),
@@ -237,6 +244,7 @@ export function Formulario({
         erros={erros}
         alterarTaxa={(texto) => alterar('taxaAnual', texto)}
         formatarTaxa={() => formatar('taxaAnual')}
+        campoTeto={campo('tetoFaixa12')}
         usarTaxaAutomatica={usarTaxaAutomatica}
         alterarOpcao={alterarOpcao}
       />

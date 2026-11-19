@@ -666,3 +666,17 @@ entrada passa, com R$ 1 a menos não.
 **Mais flexível, sem virar planilha:** entrada com FGTS e subsídio (ou em
 percentual: "20%"), prazo em meses ou anos, taxa efetiva ou nominal e limite
 de renda editável. Tudo opcional, com o padrão de antes.
+
+**Ajustes depois do uso (taxa nominal, imóvel no nome, teto da cidade):**
+
+- As taxas do MCMV e do SBPE são divulgadas como **nominais** (a simulação da
+  Caixa mostra a nominal e a efetiva). A taxa automática agora é tratada como
+  nominal (mensal = anual / 12), o que sobe um pouco a parcela em relação à
+  versão anterior. A taxa digitada segue a opção do campo; ao sair da
+  automática, ela começa nominal.
+- **Imóvel no nome:** quem já tem imóvel não pode usar o MCMV. A pergunta fica
+  no quadro do programa e, com "sim", o cliente vai direto para o SBPE (SAC em
+  destaque), e passar ou não depende da renda.
+- **Teto das Faixas 1 e 2 por município:** campo com o teto da cidade (até
+  R$ 275 mil). Acima dele, o imóvel sobe para a Faixa 3, como antes.
+- **SBPE:** referência de 11,39% (balcão da Caixa, informado pelo corretor).

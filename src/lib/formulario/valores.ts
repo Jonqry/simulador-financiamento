@@ -2,6 +2,7 @@ import {
   COTA_FINANCIAMENTO_PADRAO,
   ENCARGOS_EXEMPLO,
   encargosDaEntrada,
+  formatarBRL,
   entradaTotal,
   LIMITE_COMPROMETIMENTO_PADRAO,
   reaisParaCentavos,
@@ -9,11 +10,10 @@ import {
   validarSimulacao,
   type CampoSimulacao,
   type EntradaSimulacao,
-  type ErrosSimulacao,
   type Sistema,
 } from '../financiamento'
 import { imovelMaximoPelaRenda, type ImovelPelaRenda } from '../imovelPelaRenda'
-import { enquadrar, type Enquadramento, type Regiao } from '../taxasReferencia'
+import { enquadrar, TETO_IMOVEL_MCMV, type Enquadramento, type Perfil, type Regiao } from '../taxasReferencia'
 import { formatarNumeroBR, parseNumeroBR } from './numero'
 
 /**
@@ -23,7 +23,12 @@ import { formatarNumeroBR, parseNumeroBR } from './numero'
  * enquanto a pessoa digita ("11," a caminho de "11,49") e mostrar o erro sem
  * apagar o que ela escreveu. A conversão para número acontece em `converter`.
  */
-export type ValoresFormulario = Record<CampoSimulacao, string>
+export type ValoresFormulario = Record<CampoFormulario, string>
+
+/** Campos digitados: os da simulação e o teto das Faixas 1 e 2 no município (que só entra no enquadramento). */
+export type CampoFormulario = CampoSimulacao | 'tetoFaixa12'
+
+export type ErrosFormulario = Partial<Record<CampoFormulario, string>>
 
 /** Escolhas do formulário que não são números digitados. */
 export interface OpcoesFormulario {
@@ -31,8 +36,11 @@ export interface OpcoesFormulario {
   modo: 'imovel' | 'renda'
   regiao: Regiao
   cotista: boolean
+  /** Já tem imóvel no nome: fora do MCMV (SBPE). */
+  temImovel: boolean
   /** false: a taxa vem do enquadramento (MCMV/SBPE). true: vale a taxa digitada. */
   taxaManual: boolean
+  /** Taxa manual nominal (a automática é sempre nominal, como as tabelas são divulgadas). */
   taxaNominal: boolean
   /** O campo de prazo está em anos (na conta e na URL o prazo é sempre em meses). */
   prazoEmAnos: boolean
@@ -62,7 +70,7 @@ interface ConfigCampo {
 // Cenário inicial típico do Minha Casa, Minha Vida (Faixa 3): imóvel de
 // R$ 250 mil com 20% de entrada, 35 anos e renda de R$ 6 mil. A taxa vem
 // sozinha do enquadramento (Faixa 3, não cotista: 8,16%), por isso começa vazia.
-const CONFIG: Record<CampoSimulacao, ConfigCampo> = {
+const CONFIG: Record<CampoFormulario, ConfigCampo> = {
   valorImovel: { unidade: 'reais', obrigatorio: true, padrao: 250_000 },
   entrada: { unidade: 'reais', obrigatorio: true, padrao: 50_000 },
   fgtsEntrada: { unidade: 'reais', obrigatorio: false, padrao: null },
@@ -80,14 +88,15 @@ const CONFIG: Record<CampoSimulacao, ConfigCampo> = {
   extraValor: { unidade: 'reais', obrigatorio: false, padrao: null },
   extraMes: { unidade: 'inteiro', obrigatorio: false, padrao: null },
   extraIntervalo: { unidade: 'inteiro', obrigatorio: false, padrao: 0 },
+  tetoFaixa12: { unidade: 'reais', obrigatorio: false, padrao: TETO_IMOVEL_MCMV[1] / 100 },
 }
 
-export const CAMPOS = Object.keys(CONFIG) as readonly CampoSimulacao[]
+export const CAMPOS = Object.keys(CONFIG) as readonly CampoFormulario[]
 
 /** Campos de pagamento extra: só entram na URL quando há valor extra. */
-export const CAMPOS_EXTRA: readonly CampoSimulacao[] = ['extraValor', 'extraMes', 'extraIntervalo']
+export const CAMPOS_EXTRA: readonly CampoFormulario[] = ['extraValor', 'extraMes', 'extraIntervalo']
 
-export function formatarValor(campo: CampoSimulacao, valor: number): string {
+export function formatarValor(campo: CampoFormulario, valor: number): string {
   return formatarNumeroBR(valor, CONFIG[campo].unidade === 'percentual' ? 4 : 2)
 }
 
@@ -102,6 +111,7 @@ export const OPCOES_PADRAO: OpcoesFormulario = {
   modo: 'imovel',
   regiao: 'NNE',
   cotista: false,
+  temImovel: false,
   taxaManual: false,
   taxaNominal: false,
   prazoEmAnos: false,
@@ -126,12 +136,13 @@ export type ResultadoConversao =
       ok: true
       entrada: EntradaSimulacao
       enquadramento: Enquadramento
+      perfil: Perfil
       /** No modo pela renda: o que limitou o imóvel calculado. */
       imovelPelaRenda?: ImovelPelaRenda
     }
   | {
       ok: false
-      erros: ErrosSimulacao
+      erros: ErrosFormulario
       /** Quando a renda já é válida, o enquadramento sai mesmo com outros erros (a tela mostra a faixa). */
       enquadramento: Enquadramento | null
     }
@@ -146,7 +157,7 @@ function paraUnidadeDoCalculo(unidade: Unidade, numero: number): number {
  * Imóvel máximo pela renda com os números já convertidos do formulário.
  * Usado no modo "quanto posso comprar" e nas saídas de uma simulação reprovada.
  */
-export function calcularImovelPelaRenda(entrada: EntradaSimulacao, opcoes: OpcoesFormulario): ImovelPelaRenda {
+export function calcularImovelPelaRenda(entrada: EntradaSimulacao, opcoes: OpcoesFormulario, perfil: Perfil): ImovelPelaRenda {
   return imovelMaximoPelaRenda({
     rendaMensal: entrada.rendaMensal,
     entrada: entradaTotal(entrada),
@@ -154,9 +165,8 @@ export function calcularImovelPelaRenda(entrada: EntradaSimulacao, opcoes: Opcoe
     encargos: encargosDaEntrada(entrada),
     cota: entrada.cotaFinanciamento ?? COTA_FINANCIAMENTO_PADRAO,
     limiteRenda: entrada.limiteRenda ?? LIMITE_COMPROMETIMENTO_PADRAO,
-    taxaMensalDe: (taxaAnual) => taxaMensalDaEntrada({ taxaAnual, taxaNominal: opcoes.taxaNominal }),
-    regiao: opcoes.regiao,
-    cotista: opcoes.cotista,
+    taxaMensalDe: (taxaAnual) => taxaMensalDaEntrada({ taxaAnual, taxaNominal: entrada.taxaNominal }),
+    perfil,
     taxaManual: opcoes.taxaManual ? entrada.taxaAnual : null,
     sistema: opcoes.sistema,
   })
@@ -174,8 +184,8 @@ const IMOVEL_PROVISORIO = Number.MAX_SAFE_INTEGER
  */
 export function converter(valores: ValoresFormulario, opcoes: OpcoesFormulario): ResultadoConversao {
   const pelaRenda = opcoes.modo === 'renda'
-  const numeros: Partial<Record<CampoSimulacao, number>> = {}
-  const errosFormato: ErrosSimulacao = {}
+  const numeros: Partial<Record<CampoFormulario, number>> = {}
+  const errosFormato: ErrosFormulario = {}
 
   for (const campo of CAMPOS) {
     // Campos que o próprio simulador preenche: o imóvel (pela renda) e a taxa (automática).
@@ -196,7 +206,9 @@ export function converter(valores: ValoresFormulario, opcoes: OpcoesFormulario):
     // Opcional vazio: fica de fora (o cálculo usa 0 / "não informado").
   }
 
-  const entrada = { ...numeros, taxaNominal: opcoes.taxaNominal } as EntradaSimulacao
+  // As taxas das tabelas (MCMV e SBPE) são nominais; a manual segue a escolha do corretor.
+  const { tetoFaixa12, ...daSimulacao } = numeros
+  const entrada = { ...daSimulacao, taxaNominal: !opcoes.taxaManual || opcoes.taxaNominal } as EntradaSimulacao
   if (opcoes.prazoEmAnos) entrada.prazoMeses = Math.round(entrada.prazoMeses * 12)
   if (pelaRenda) entrada.valorImovel = IMOVEL_PROVISORIO
 
@@ -213,13 +225,24 @@ export function converter(valores: ValoresFormulario, opcoes: OpcoesFormulario):
   // Sem renda não há enquadramento: a taxa automática fica num valor neutro e o erro aparece na renda.
   if (!opcoes.taxaManual) entrada.taxaAnual = 0
 
-  const errosRegra: ErrosSimulacao = {}
+  const errosRegra: ErrosFormulario = {}
+  const tetoGeral = TETO_IMOVEL_MCMV[1]
+  if (tetoFaixa12 !== undefined && !errosFormato.tetoFaixa12 && (tetoFaixa12 <= 0 || tetoFaixa12 > tetoGeral)) {
+    errosRegra.tetoFaixa12 = `Use um valor de até ${formatarBRL(tetoGeral)}.`
+  }
+  const tetoValido = tetoFaixa12 !== undefined && !errosFormato.tetoFaixa12 && !errosRegra.tetoFaixa12
+  const perfil: Perfil = {
+    regiao: opcoes.regiao,
+    cotista: opcoes.cotista,
+    temImovel: opcoes.temImovel,
+    tetoFaixa12: tetoValido ? tetoFaixa12 : tetoGeral,
+  }
   let imovelPelaRenda: ImovelPelaRenda | undefined
   let enquadramento: Enquadramento | null = null
 
   if (rendaValida) {
     if (pelaRenda && Object.keys({ ...validarSimulacao(entrada), ...errosFormato }).length === 0) {
-      imovelPelaRenda = calcularImovelPelaRenda(entrada, opcoes)
+      imovelPelaRenda = calcularImovelPelaRenda(entrada, opcoes, perfil)
       entrada.valorImovel = imovelPelaRenda.valorImovel
       if (imovelPelaRenda.financiamento === 0) {
         if (imovelPelaRenda.limitadoPor === 'entrada') {
@@ -230,14 +253,14 @@ export function converter(valores: ValoresFormulario, opcoes: OpcoesFormulario):
       }
     }
     const valorConhecido = Number.isFinite(entrada.valorImovel) && entrada.valorImovel !== IMOVEL_PROVISORIO
-    enquadramento = enquadrar(entrada.rendaMensal, valorConhecido ? entrada.valorImovel : null, opcoes.regiao, opcoes.cotista)
+    enquadramento = enquadrar(entrada.rendaMensal, valorConhecido ? entrada.valorImovel : null, perfil)
     if (!opcoes.taxaManual) entrada.taxaAnual = enquadramento.taxaAnual
   }
 
   // Ordem de prioridade: erro de formato ("Digite um número válido") > erro do modo pela renda > regra geral.
   const regraGeral = validarSimulacao(entrada)
-  if (Object.keys(errosRegra).length > 0) delete regraGeral.entrada
+  if (errosRegra.entrada || errosRegra.rendaMensal) delete regraGeral.entrada
   const erros = { ...regraGeral, ...errosRegra, ...errosFormato }
   if (Object.keys(erros).length > 0) return { ok: false, erros, enquadramento }
-  return { ok: true, entrada, enquadramento: enquadramento!, ...(imovelPelaRenda && { imovelPelaRenda }) }
+  return { ok: true, entrada, enquadramento: enquadramento!, perfil, ...(imovelPelaRenda && { imovelPelaRenda }) }
 }

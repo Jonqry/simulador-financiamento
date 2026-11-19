@@ -1,4 +1,3 @@
-import type { CampoSimulacao } from '../financiamento'
 import { parseNumeroBR } from './numero'
 import {
   CAMPOS,
@@ -7,6 +6,7 @@ import {
   ESTADO_PADRAO,
   formatarValor,
   OPCOES_PADRAO,
+  type CampoFormulario,
   type EstadoFormulario,
   type OpcoesFormulario,
 } from './valores'
@@ -16,7 +16,7 @@ import {
  * legível quando colado no WhatsApp:
  * ?valor=400000&entrada=80000&prazo=360&renda=15000
  */
-export const PARAMETROS_URL: Record<CampoSimulacao, string> = {
+export const PARAMETROS_URL: Record<CampoFormulario, string> = {
   valorImovel: 'valor',
   entrada: 'entrada',
   fgtsEntrada: 'fgts',
@@ -34,6 +34,7 @@ export const PARAMETROS_URL: Record<CampoSimulacao, string> = {
   extraValor: 'extra',
   extraMes: 'mesExtra',
   extraIntervalo: 'repetir',
+  tetoFaixa12: 'teto12',
 }
 
 /**
@@ -58,6 +59,7 @@ export function lerDaUrl(search: string): EstadoFormulario {
     modo: params.get('modo') === 'renda' ? 'renda' : 'imovel',
     regiao: params.get('regiao') === 'SSECO' ? 'SSECO' : 'NNE',
     cotista: params.get('cotista') === '1',
+    temImovel: params.get('temImovel') === '1',
     taxaManual: false,
     taxaNominal: params.get('nominal') === '1',
     prazoEmAnos: params.get('prazoEm') === 'anos',
@@ -107,6 +109,7 @@ export function paraQueryString({ valores, opcoes }: EstadoFormulario): string {
   if (opcoes.modo !== p.modo) params.set('modo', opcoes.modo)
   if (opcoes.regiao !== p.regiao) params.set('regiao', opcoes.regiao)
   if (opcoes.cotista) params.set('cotista', '1')
+  if (opcoes.temImovel) params.set('temImovel', '1')
   if (opcoes.taxaNominal) params.set('nominal', '1')
   if (opcoes.prazoEmAnos) params.set('prazoEm', 'anos')
   if (opcoes.sistema) params.set('sistema', opcoes.sistema)

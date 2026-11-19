@@ -14,7 +14,7 @@ import type { Centavos, Sistema, Taxa } from './financiamento'
 export const ATUALIZACAO_TAXAS = {
   data: 'novembro de 2026',
   fonteMcmv: 'Ministério das Cidades (quadro de juros de 28/10/2026; faixas da Portaria MCID 333/2026)',
-  fonteMercado: 'taxas "a partir de" divulgadas pelos bancos (Caixa, BB, Itaú, Santander, Bradesco) em nov/2026',
+  fonteMercado: 'taxas "a partir de" divulgadas pelos bancos (Caixa, BB, Itaú, Santander, Bradesco) em nov/2026; referência: balcão da Caixa informado pelo corretor',
 } as const
 
 /** N/NE: Norte e Nordeste. S/SE/CO: Sul, Sudeste e Centro-Oeste. */
@@ -35,6 +35,7 @@ const linha = (faixa: LinhaMcmv['faixa'], rendaAte: Centavos, [c1, c2, n1, n2]: 
 })
 
 // Colunas: [cotista N/NE, cotista S/SE/CO, não cotista N/NE, não cotista S/SE/CO], em % ao ano.
+// São taxas NOMINAIS (é assim que a Caixa divulga; a simulação dela mostra a nominal e a efetiva).
 const TABELA_MCMV: readonly LinhaMcmv[] = [
   linha(1, 2_160_00, [4.0, 4.25, 4.5, 4.75]),
   linha(1, 2_850_00, [4.25, 4.5, 4.75, 5.0]),
@@ -46,7 +47,7 @@ const TABELA_MCMV: readonly LinhaMcmv[] = [
   linha(4, 13_000_00, [10.0, 10.0, 10.0, 10.0]),
 ]
 
-/** Teto do valor do imóvel por faixa (Faixas 1 e 2 variam por município; este é o teto geral). */
+/** Teto do valor do imóvel por faixa. Nas Faixas 1 e 2 varia por município: este é o maior (ver `Perfil.tetoFaixa12`). */
 export const TETO_IMOVEL_MCMV: Record<LinhaMcmv['faixa'], Centavos> = {
   1: 275_000_00,
   2: 275_000_00,
@@ -55,12 +56,24 @@ export const TETO_IMOVEL_MCMV: Record<LinhaMcmv['faixa'], Centavos> = {
 }
 
 /**
- * Taxas de mercado (SBPE), "a partir de", sem contar a TR. A `referencia` é a
- * que entra na simulação automática; o corretor troca pela da proposta.
+ * Taxas de mercado (SBPE), nominais e sem contar a TR. A `referencia` é a que
+ * entra na simulação automática (balcão da Caixa); o corretor troca pela da proposta.
  */
-export const TAXAS_MERCADO = { minima: 0.1026, maxima: 0.15, referencia: 0.1026 } as const
+export const TAXAS_MERCADO = { minima: 0.1026, maxima: 0.15, referencia: 0.1139 } as const
 
 export type Faixa = LinhaMcmv['faixa']
+
+/** O que, além da renda e do imóvel, decide o enquadramento. */
+export interface Perfil {
+  regiao: Regiao
+  cotista: boolean
+  /** Já tem imóvel no nome: o MCMV não atende, vale o SBPE. */
+  temImovel: boolean
+  /** Teto das Faixas 1 e 2 no município (até o teto geral de R$ 275 mil). */
+  tetoFaixa12: Centavos
+}
+
+export const PERFIL_PADRAO: Perfil = { regiao: 'NNE', cotista: false, temImovel: false, tetoFaixa12: TETO_IMOVEL_MCMV[1] }
 
 /**
  * Em qual programa o cliente se enquadra e com que taxa a simulação roda.
@@ -72,13 +85,18 @@ export type Enquadramento =
       faixa: Faixa
       /** Faixa só pela renda. Diferente de `faixa` quando o imóvel passou do teto e subiu de faixa. */
       faixaPelaRenda: Faixa
+      /** Teto da faixa da renda (para explicar por que subiu de faixa). */
+      tetoFaixaPelaRenda: Centavos
       taxaAnual: Taxa
       tetoImovel: Centavos
     }
   | {
       programa: 'SBPE'
-      /** Fora do MCMV pela renda (acima de R$ 13 mil) ou pelo valor do imóvel (acima de todos os tetos). */
-      motivo: 'renda' | 'imovel'
+      /**
+       * Fora do MCMV pela renda (acima de R$ 13 mil), pelo valor do imóvel
+       * (acima de todos os tetos) ou porque o cliente já tem imóvel no nome.
+       */
+      motivo: 'renda' | 'imovel' | 'imovelProprio'
       taxaAnual: Taxa
       tetoImovel: Centavos
     }
@@ -91,34 +109,39 @@ const taxaDaLinha = (l: LinhaMcmv, regiao: Regiao, cotista: boolean): Taxa => l.
  * A faixa vem da renda. Se o imóvel passa do teto da faixa, ele sobe para a
  * próxima faixa cujo teto é maior, com a taxa dela (ex.: renda de Faixa 3 e
  * imóvel de R$ 450 mil → Faixa 4, 10%). Acima do teto da Faixa 4, SBPE.
- * Faixas com o mesmo teto (1 e 2) não viram degraus separados.
+ * Faixas com o mesmo teto (1 e 2) não viram degraus separados. Quem já tem
+ * imóvel no nome vai direto para o SBPE.
  */
-export function patamaresPelaRenda(rendaMensal: Centavos, regiao: Regiao, cotista: boolean): Enquadramento[] {
+export function patamaresPelaRenda(rendaMensal: Centavos, perfil: Perfil): Enquadramento[] {
   if (!Number.isFinite(rendaMensal) || rendaMensal <= 0) {
     throw new RangeError(`Renda deve ser positiva (recebido: ${rendaMensal})`)
   }
-  const sbpe = (motivo: 'renda' | 'imovel'): Enquadramento => ({
+  const sbpe = (motivo: 'renda' | 'imovel' | 'imovelProprio'): Enquadramento => ({
     programa: 'SBPE',
     motivo,
     taxaAnual: TAXAS_MERCADO.referencia,
     tetoImovel: Number.POSITIVE_INFINITY,
   })
 
+  if (perfil.temImovel) return [sbpe('imovelProprio')]
   const linha = TABELA_MCMV.find((l) => rendaMensal <= l.rendaAte)
   if (!linha) return [sbpe('renda')]
+
+  const teto = (faixa: Faixa) => (faixa <= 2 ? perfil.tetoFaixa12 : TETO_IMOVEL_MCMV[faixa])
 
   const patamares: Enquadramento[] = []
   let tetoAnterior = 0
   for (const outra of TABELA_MCMV) {
     // A linha da própria renda e, acima dela, a primeira linha de cada faixa com teto maior.
-    const valeComoDegrau = outra === linha || (outra.faixa > linha.faixa && TETO_IMOVEL_MCMV[outra.faixa] > tetoAnterior)
+    const valeComoDegrau = outra === linha || (outra.faixa > linha.faixa && teto(outra.faixa) > tetoAnterior)
     if (!valeComoDegrau) continue
-    tetoAnterior = TETO_IMOVEL_MCMV[outra.faixa]
+    tetoAnterior = teto(outra.faixa)
     patamares.push({
       programa: 'MCMV',
       faixa: outra.faixa,
       faixaPelaRenda: linha.faixa,
-      taxaAnual: taxaDaLinha(outra, regiao, cotista),
+      tetoFaixaPelaRenda: teto(linha.faixa),
+      taxaAnual: taxaDaLinha(outra, perfil.regiao, perfil.cotista),
       tetoImovel: tetoAnterior,
     })
   }
@@ -132,9 +155,9 @@ export function patamaresPelaRenda(rendaMensal: Centavos, regiao: Regiao, cotist
  *
  * O teto é inclusivo: R$ 400.000,00 ainda é Faixa 3; R$ 400.000,01 já não é.
  */
-export function enquadrar(rendaMensal: Centavos, valorImovel: Centavos | null, regiao: Regiao, cotista: boolean): Enquadramento {
+export function enquadrar(rendaMensal: Centavos, valorImovel: Centavos | null, perfil: Perfil): Enquadramento {
   // O último patamar (SBPE) não tem teto, então o find sempre encontra.
-  return patamaresPelaRenda(rendaMensal, regiao, cotista).find((p) => valorImovel === null || valorImovel <= p.tetoImovel)!
+  return patamaresPelaRenda(rendaMensal, perfil).find((p) => valorImovel === null || valorImovel <= p.tetoImovel)!
 }
 
 /** Sistema que abre por padrão: no MCMV quase sempre se usa PRICE; no SBPE, SAC. */

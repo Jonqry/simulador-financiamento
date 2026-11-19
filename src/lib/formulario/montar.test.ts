@@ -16,7 +16,7 @@ describe('montarSimulacao', () => {
     expect(s.enquadramento).toMatchObject({ programa: 'MCMV', faixa: 3 })
     expect(s).toMatchObject({ sistema: 'PRICE', outroSistema: 'SAC', reprovado: false })
     expect(s.saidas).toBeUndefined()
-    expect(s.resultado.price.custos.primeiraParcela).toBe(1_501_65)
+    expect(s.resultado.price.custos.primeiraParcela).toBe(1_543_82)
   })
 
   it('SBPE abre em SAC', () => {

@@ -1,5 +1,5 @@
 import { capacidadeDeCompra, type Centavos, type Encargos, type Sistema, type Taxa } from './financiamento'
-import { patamaresPelaRenda, sistemaPadrao, type Regiao } from './taxasReferencia'
+import { patamaresPelaRenda, sistemaPadrao, type Perfil } from './taxasReferencia'
 
 export interface ParametrosImovelPelaRenda {
   rendaMensal: Centavos
@@ -11,8 +11,7 @@ export interface ParametrosImovelPelaRenda {
   limiteRenda: Taxa
   /** Converte a taxa anual em mensal (efetiva ou nominal, conforme o formulário). */
   taxaMensalDe: (taxaAnual: Taxa) => Taxa
-  regiao: Regiao
-  cotista: boolean
+  perfil: Perfil
   /** Taxa digitada pelo corretor. Com ela, as faixas não entram: vale a mesma taxa para qualquer imóvel. */
   taxaManual: Taxa | null
   /** Sistema escolhido pelo corretor; null = o padrão de cada programa (MCMV → PRICE, SBPE → SAC). */
@@ -36,7 +35,7 @@ export interface ImovelPelaRenda {
  * degrau anterior. Fica o maior imóvel válido.
  */
 export function imovelMaximoPelaRenda(p: ParametrosImovelPelaRenda): ImovelPelaRenda {
-  const patamares = patamaresPelaRenda(p.rendaMensal, p.regiao, p.cotista)
+  const patamares = patamaresPelaRenda(p.rendaMensal, p.perfil)
   const degraus =
     p.taxaManual === null
       ? patamares

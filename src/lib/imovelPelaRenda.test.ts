@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { capacidadeDeCompra, ENCARGOS_EXEMPLO, taxaMensalDeAnualEfetiva } from './financiamento'
 import { imovelMaximoPelaRenda, type ParametrosImovelPelaRenda } from './imovelPelaRenda'
+import { PERFIL_PADRAO, TAXAS_MERCADO } from './taxasReferencia'
 
 const BASE: ParametrosImovelPelaRenda = {
   rendaMensal: 6_000_00,
@@ -10,8 +11,7 @@ const BASE: ParametrosImovelPelaRenda = {
   cota: 0.8,
   limiteRenda: 0.3,
   taxaMensalDe: taxaMensalDeAnualEfetiva,
-  regiao: 'NNE',
-  cotista: false,
+  perfil: PERFIL_PADRAO,
   taxaManual: null,
   sistema: null,
 }
@@ -67,7 +67,7 @@ describe('imovelMaximoPelaRenda', () => {
 
   it('renda acima do MCMV: SBPE, no SAC', () => {
     const p = { rendaMensal: 20_000_00, entrada: 400_000_00 }
-    const sbpe = capacidade(0.1026, p, 'SAC')
+    const sbpe = capacidade(TAXAS_MERCADO.referencia, p, 'SAC')
     expect(imovelMaximoPelaRenda({ ...BASE, ...p }).valorImovel).toBe(sbpe.valorMaximoImovel)
   })
 
@@ -88,5 +88,12 @@ describe('imovelMaximoPelaRenda', () => {
       financiamento: 80_000_00,
       limitadoPor: 'entrada',
     })
+  })
+})
+
+describe('imovelMaximoPelaRenda: perfil', () => {
+  it('quem já tem imóvel no nome: só SBPE, no SAC', () => {
+    const r = imovelMaximoPelaRenda({ ...BASE, perfil: { ...PERFIL_PADRAO, temImovel: true } })
+    expect(r.valorImovel).toBe(capacidade(TAXAS_MERCADO.referencia, {}, 'SAC').valorMaximoImovel)
   })
 })

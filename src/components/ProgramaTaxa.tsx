@@ -1,6 +1,6 @@
 import { useId } from 'react'
-import { formatarBRL, type ErrosSimulacao } from '../lib/financiamento'
-import type { OpcoesFormulario } from '../lib/formulario/valores'
+import { formatarBRL } from '../lib/financiamento'
+import type { ErrosFormulario, OpcoesFormulario } from '../lib/formulario/valores'
 import { ATUALIZACAO_TAXAS, descreverPrograma, TETO_IMOVEL_MCMV, type Enquadramento, type Regiao } from '../lib/taxasReferencia'
 import { Campo } from './Campo'
 
@@ -9,9 +9,11 @@ interface ProgramaTaxaProps {
   opcoes: OpcoesFormulario
   /** Texto exibido no campo: a taxa automática ou a digitada. */
   taxaTexto: string
-  erros: ErrosSimulacao
+  erros: ErrosFormulario
   alterarTaxa: (texto: string) => void
   formatarTaxa: () => void
+  /** Campo do teto das Faixas 1 e 2 no município (props prontas para o <Campo>). */
+  campoTeto: { valor: string; aoAlterar: (texto: string) => void; aoSair: () => void; erro?: string }
   usarTaxaAutomatica: () => void
   alterarOpcao: <K extends keyof OpcoesFormulario>(opcao: K, valor: OpcoesFormulario[K]) => void
 }
@@ -19,6 +21,9 @@ interface ProgramaTaxaProps {
 function Explicacao({ enquadramento }: { enquadramento: Enquadramento | null }) {
   if (!enquadramento) return <>Informe a renda para ver a faixa e a taxa.</>
   if (enquadramento.programa === 'SBPE') {
+    if (enquadramento.motivo === 'imovelProprio') {
+      return <>Quem já tem imóvel no nome não pode usar o Minha Casa, Minha Vida. Vale o SBPE, e a aprovação depende da renda.</>
+    }
     return enquadramento.motivo === 'renda' ? (
       <>Renda acima de R$ 13 mil: fora do Minha Casa, Minha Vida. Taxa de mercado + TR, conforme o banco.</>
     ) : (
@@ -29,14 +34,14 @@ function Explicacao({ enquadramento }: { enquadramento: Enquadramento | null }) 
     return (
       <>
         Pela renda seria Faixa {enquadramento.faixaPelaRenda}, mas o imóvel passa do teto dela (
-        {formatarBRL(TETO_IMOVEL_MCMV[enquadramento.faixaPelaRenda])}): entra na Faixa {enquadramento.faixa}, com a taxa dela.
+        {formatarBRL(enquadramento.tetoFaixaPelaRenda)}): entra na Faixa {enquadramento.faixa}, com a taxa dela.
       </>
     )
   }
   return (
     <>
       Imóvel de até {formatarBRL(enquadramento.tetoImovel)}
-      {enquadramento.faixa <= 2 && ' (varia por cidade)'}.
+      {enquadramento.faixa <= 2 && ' (teto da cidade)'}.
     </>
   )
 }
@@ -55,11 +60,16 @@ export function ProgramaTaxa({
   formatarTaxa,
   usarTaxaAutomatica,
   alterarOpcao,
+  campoTeto,
 }: ProgramaTaxaProps) {
   const id = useId()
   const seletor = 'rounded-xs border-[1.5px] border-linha bg-branco px-2 py-1 text-sm text-tinta'
-  // Região e FGTS só mudam a taxa quando a renda cabe no MCMV.
-  const rendaNoMcmv = enquadramento !== null && !(enquadramento.programa === 'SBPE' && enquadramento.motivo === 'renda')
+  // Região e FGTS só mudam a taxa quando o cliente cabe no MCMV pela renda (e não tem imóvel).
+  const rendaNoMcmv =
+    enquadramento !== null && !(enquadramento.programa === 'SBPE' && enquadramento.motivo !== 'imovel')
+  // O teto da cidade só importa para renda de Faixa 1 ou 2 (ou se o campo está com erro).
+  const mostrarTeto =
+    Boolean(campoTeto.erro) || (enquadramento?.programa === 'MCMV' && enquadramento.faixaPelaRenda <= 2)
 
   return (
     <section className="space-y-3 rounded-xs border-[1.5px] border-dashed border-tinta-suave bg-papel p-3 text-sm" aria-labelledby={`${id}-titulo`}>
@@ -70,6 +80,21 @@ export function ProgramaTaxa({
         <p className="estreito mt-0.5 text-sm text-tinta-suave">
           <Explicacao enquadramento={enquadramento} />
         </p>
+      </div>
+
+      <div>
+        <label className="sr-only" htmlFor={`${id}-imovel`}>
+          Já tem imóvel no nome?
+        </label>
+        <select
+          id={`${id}-imovel`}
+          value={opcoes.temImovel ? 'sim' : 'nao'}
+          onChange={(e) => alterarOpcao('temImovel', e.target.value === 'sim')}
+          className={seletor}
+        >
+          <option value="nao">Não tem imóvel no nome</option>
+          <option value="sim">Já tem imóvel no nome</option>
+        </select>
       </div>
 
       {rendaNoMcmv && (
@@ -101,6 +126,15 @@ export function ProgramaTaxa({
         </div>
       )}
 
+      {mostrarTeto && (
+        <Campo
+          rotulo="Teto das Faixas 1 e 2 na cidade"
+          prefixo="R$"
+          {...campoTeto}
+          dica="Varia por município, até R$ 275 mil. Acima dele, o imóvel entra na Faixa 3."
+        />
+      )}
+
       <Campo
         rotulo="Taxa de juros"
         valor={taxaTexto}
@@ -110,8 +144,10 @@ export function ProgramaTaxa({
         sufixo={
           <select
             aria-label="Tipo de taxa"
-            value={opcoes.taxaNominal ? 'nominal' : 'efetiva'}
+            value={!opcoes.taxaManual || opcoes.taxaNominal ? 'nominal' : 'efetiva'}
             onChange={(e) => alterarOpcao('taxaNominal', e.target.value === 'nominal')}
+            disabled={!opcoes.taxaManual}
+            title={opcoes.taxaManual ? undefined : 'As taxas do programa são nominais, como a Caixa divulga'}
             className="bg-transparent text-sm text-tinta-suave"
           >
             <option value="efetiva">% ao ano, efetiva</option>
@@ -127,7 +163,7 @@ export function ProgramaTaxa({
               </button>
             </>
           ) : (
-            'Automática pela faixa. Para usar a taxa do banco, é só digitar.'
+            'Automática pela faixa (nominal, como a Caixa divulga). Para usar a taxa do banco, é só digitar.'
           )
         }
       />

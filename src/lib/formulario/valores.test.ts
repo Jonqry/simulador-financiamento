@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { taxaMensalDeAnualEfetiva } from '../financiamento'
+import { taxaMensalDeAnualNominal } from '../financiamento'
 import { imovelMaximoPelaRenda } from '../imovelPelaRenda'
+import { PERFIL_PADRAO, TAXAS_MERCADO } from '../taxasReferencia'
 import {
   converter,
   converterTextoPrazo,
@@ -40,18 +41,19 @@ describe('VALORES_PADRAO', () => {
       extraValor: '',
       extraMes: '',
       extraIntervalo: '0',
+      tetoFaixa12: '275.000',
     })
   })
 })
 
 describe('converter', () => {
-  it('converte reais em centavos e % em decimal, com a taxa do enquadramento', () => {
+  it('converte reais em centavos e % em decimal, com a taxa (nominal) do enquadramento', () => {
     const r = entradaOk()
     expect(r.entrada).toEqual({
       valorImovel: 250_000_00,
       entrada: 50_000_00,
       taxaAnual: 0.0816,
-      taxaNominal: false,
+      taxaNominal: true,
       prazoMeses: 420,
       rendaMensal: 6_000_00,
       mipMensal: expect.closeTo(0.00025, 12),
@@ -159,8 +161,10 @@ describe('converter: taxa manual e nominal', () => {
     expect(conv({ taxaAnual: '' }, { taxaManual: true })).toMatchObject({ ok: false, erros: { taxaAnual: 'Campo obrigatório.' } })
   })
 
-  it('repassa a opção de taxa nominal', () => {
-    expect(entradaOk({}, { taxaNominal: true }).entrada.taxaNominal).toBe(true)
+  it('a taxa automática é sempre nominal; a manual segue a opção', () => {
+    expect(entradaOk({}, { taxaNominal: false }).entrada.taxaNominal).toBe(true)
+    expect(entradaOk({ taxaAnual: '9' }, { taxaManual: true }).entrada.taxaNominal).toBe(false)
+    expect(entradaOk({ taxaAnual: '9' }, { taxaManual: true, taxaNominal: true }).entrada.taxaNominal).toBe(true)
   })
 })
 
@@ -217,9 +221,8 @@ describe('converter: modo "quanto posso comprar" (pela renda)', () => {
       encargos: { mipMensal: 0.00025, dfiMensal: 0.0001, taxaAdministracao: 25_00 },
       cota: 0.8,
       limiteRenda: 0.3,
-      taxaMensalDe: taxaMensalDeAnualEfetiva,
-      regiao: 'NNE',
-      cotista: false,
+      taxaMensalDe: taxaMensalDeAnualNominal,
+      perfil: PERFIL_PADRAO,
       taxaManual: null,
       sistema: null,
     })
@@ -280,5 +283,31 @@ describe('converter: modo pela renda com condições vazias', () => {
     const vazio = entradaOk({ cotaFinanciamento: '', limiteRenda: '', mipMensal: '', dfiMensal: '', taxaAdministracao: '' }, { modo: 'renda' })
     const explicito = entradaOk({ cotaFinanciamento: '80', limiteRenda: '30', mipMensal: '0', dfiMensal: '0', taxaAdministracao: '0' }, { modo: 'renda' })
     expect(vazio.entrada.valorImovel).toBe(explicito.entrada.valorImovel)
+  })
+})
+
+describe('converter: perfil do cliente', () => {
+  it('quem já tem imóvel no nome sai do MCMV: SBPE, com a taxa de referência', () => {
+    const r = entradaOk({}, { temImovel: true })
+    expect(r.enquadramento).toMatchObject({ programa: 'SBPE', motivo: 'imovelProprio' })
+    expect(r.entrada.taxaAnual).toBe(TAXAS_MERCADO.referencia)
+  })
+
+  it('o teto das Faixas 1 e 2 vem do campo da cidade', () => {
+    const r = entradaOk({ rendaMensal: '2.500', valorImovel: '220.000', tetoFaixa12: '210.000' })
+    expect(r.enquadramento).toMatchObject({ faixa: 3, faixaPelaRenda: 1 })
+    expect(r.perfil.tetoFaixa12).toBe(210_000_00)
+  })
+
+  it('teto vazio vale o geral (R$ 275 mil); teto acima dele é erro', () => {
+    expect(entradaOk({ tetoFaixa12: '' }).perfil.tetoFaixa12).toBe(275_000_00)
+    const r = conv({ tetoFaixa12: '300.000' })
+    expect(!r.ok && r.erros.tetoFaixa12).toMatch(/^Use um valor de até R\$\s275\.000,00\.$/)
+    expect(conv({ tetoFaixa12: '0' }).ok).toBe(false)
+  })
+
+  it('teto inválido não acusa outro campo e o enquadramento usa o teto geral', () => {
+    const r = conv({ tetoFaixa12: 'abc', rendaMensal: '2.500', valorImovel: '260.000' })
+    expect(r).toMatchObject({ ok: false, erros: { tetoFaixa12: 'Digite um número válido.' }, enquadramento: { faixa: 1 } })
   })
 })

@@ -35,14 +35,16 @@ describe('lerDaUrl', () => {
       extraValor: '20.000',
       extraMes: '24',
       extraIntervalo: '24',
+      tetoFaixa12: '275.000',
     })
   })
 
   it('lê as opções', () => {
-    expect(lerDaUrl('?modo=renda&regiao=SSECO&cotista=1&nominal=1&prazoEm=anos&sistema=SAC&comparar=1').opcoes).toEqual({
+    expect(lerDaUrl('?modo=renda&regiao=SSECO&cotista=1&temImovel=1&nominal=1&prazoEm=anos&sistema=SAC&comparar=1').opcoes).toEqual({
       modo: 'renda',
       regiao: 'SSECO',
       cotista: true,
+      temImovel: true,
       taxaManual: false,
       taxaNominal: true,
       prazoEmAnos: true,
@@ -84,7 +86,9 @@ describe('lerDaUrl', () => {
 
 describe('paraQueryString', () => {
   it('gera números em formato de máquina com nomes curtos; taxa automática fica de fora', () => {
-    expect(paraQueryString(ESTADO_PADRAO)).toBe('valor=250000&entrada=50000&prazo=420&renda=6000&mip=0.025&dfi=0.01&adm=25&cota=80&limite=30')
+    expect(paraQueryString(ESTADO_PADRAO)).toBe(
+      'valor=250000&entrada=50000&prazo=420&renda=6000&mip=0.025&dfi=0.01&adm=25&cota=80&limite=30&teto12=275000',
+    )
   })
 
   it('taxa manual entra no link', () => {
@@ -93,7 +97,7 @@ describe('paraQueryString', () => {
 
   it('omite campos que não são números', () => {
     expect(paraQueryString(comValores({ entrada: 'abc', rendaMensal: '' }))).toBe(
-      'valor=250000&prazo=420&mip=0.025&dfi=0.01&adm=25&cota=80&limite=30',
+      'valor=250000&prazo=420&mip=0.025&dfi=0.01&adm=25&cota=80&limite=30&teto12=275000',
     )
   })
 
@@ -109,16 +113,16 @@ describe('paraQueryString', () => {
 
   it('só grava as opções diferentes do padrão', () => {
     const query = paraQueryString(
-      comValores({}, { modo: 'renda', regiao: 'SSECO', cotista: true, taxaNominal: true, sistema: 'PRICE', comparar: true }),
+      comValores({}, { modo: 'renda', regiao: 'SSECO', cotista: true, temImovel: true, taxaNominal: true, sistema: 'PRICE', comparar: true }),
     )
-    expect(query).toContain('modo=renda&regiao=SSECO&cotista=1&nominal=1&sistema=PRICE&comparar=1')
+    expect(query).toContain('modo=renda&regiao=SSECO&cotista=1&temImovel=1&nominal=1&sistema=PRICE&comparar=1')
   })
 
   it.each<[Partial<typeof VALORES_PADRAO>, Partial<typeof OPCOES_PADRAO>]>([
     [{ valorImovel: '1.234.567,89', taxaAnual: '9,8765' }, { taxaManual: true }],
     [{ prazoMeses: '29,5' }, { prazoEmAnos: true }],
     [{ entrada: '20%' }, {}],
-    [{ fgtsEntrada: '12.000', subsidio: '30.000', limiteRenda: '25' }, { cotista: true }],
+    [{ fgtsEntrada: '12.000', subsidio: '30.000', limiteRenda: '25', tetoFaixa12: '210.000' }, { cotista: true, temImovel: true }],
   ])('ida e volta: ler o que foi escrito devolve o mesmo estado (%o)', (valores, opcoes) => {
     const estado = comValores(valores, opcoes)
     expect(lerDaUrl(`?${paraQueryString(estado)}`)).toEqual(estado)

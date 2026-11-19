@@ -1,5 +1,4 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
-import type { CampoSimulacao, ErrosSimulacao } from '../lib/financiamento'
 import { montarSimulacao, type Simulacao } from '../lib/formulario/montar'
 import { parseNumeroBR } from '../lib/formulario/numero'
 import { lerDaUrl, paraQueryString } from '../lib/formulario/url'
@@ -9,6 +8,8 @@ import {
   entradaEmPercentual,
   ESTADO_PADRAO,
   formatarValor,
+  type CampoFormulario,
+  type ErrosFormulario,
   type EstadoFormulario,
   type OpcoesFormulario,
   type ValoresFormulario,
@@ -21,14 +22,14 @@ export interface EstadoSimulacao {
   valores: ValoresFormulario
   opcoes: OpcoesFormulario
   /** Digitar na taxa troca para a taxa manual. */
-  alterar: (campo: CampoSimulacao, texto: string) => void
+  alterar: (campo: CampoFormulario, texto: string) => void
   alterarOpcao: <K extends keyof OpcoesFormulario>(opcao: K, valor: OpcoesFormulario[K]) => void
   usarTaxaAutomatica: () => void
   /** Ao sair do campo: "320000" vira "320.000". Texto inválido fica como está. */
-  formatar: (campo: CampoSimulacao) => void
+  formatar: (campo: CampoFormulario) => void
   /** Volta ao cenário inicial (próximo cliente). */
   reiniciar: () => void
-  erros: ErrosSimulacao
+  erros: ErrosFormulario
   /** Programa e faixa com os valores atuais (null enquanto a renda é inválida). */
   enquadramento: Enquadramento | null
   /** null enquanto houver campo inválido. */
@@ -74,7 +75,11 @@ export function useSimulacao(): EstadoSimulacao {
     alterar: (campo, texto) =>
       setEstado((anterior) => ({
         valores: { ...anterior.valores, [campo]: texto },
-        opcoes: campo === 'taxaAnual' ? { ...anterior.opcoes, taxaManual: true } : anterior.opcoes,
+        // Ao sair da automática (nominal), a taxa digitada continua nominal; o corretor troca se quiser.
+        opcoes:
+          campo === 'taxaAnual' && !anterior.opcoes.taxaManual
+            ? { ...anterior.opcoes, taxaManual: true, taxaNominal: true }
+            : anterior.opcoes,
       })),
     alterarOpcao: (opcao, valor) =>
       setEstado((anterior) => {
@@ -89,7 +94,7 @@ export function useSimulacao(): EstadoSimulacao {
     usarTaxaAutomatica: () =>
       setEstado((anterior) => ({
         valores: { ...anterior.valores, taxaAnual: '' },
-        opcoes: { ...anterior.opcoes, taxaManual: false },
+        opcoes: { ...anterior.opcoes, taxaManual: false, taxaNominal: false },
       })),
     formatar: (campo) =>
       mudarValores((valores) => {

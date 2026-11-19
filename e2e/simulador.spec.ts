@@ -101,8 +101,8 @@ test('imóvel na planta: painel e gráfico da evolução de obra', async ({ page
   await page.goto('/?obra=24&executada=30')
 
   const painel = page.locator('section').filter({ has: page.getByRole('heading', { name: /Durante a obra/ }) })
-  await expect(painel).toContainText('R$ 498,21')
-  await expect(painel).toContainText('R$ 22.918,16')
+  await expect(painel).toContainText('R$ 514,13')
+  await expect(painel).toContainText('R$ 23.689,52')
   await expect(painel.locator('svg.recharts-surface')).toHaveCount(1)
 })
 
@@ -200,11 +200,11 @@ test('digitar a taxa do banco troca para manual, e dá para voltar à automátic
 test('MCMV abre na PRICE; o SAC aparece só ao comparar', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeVisible()
-  await expect(cartao(page, 'Tabela PRICE')).toContainText('R$ 1.501,65')
+  await expect(cartao(page, 'Tabela PRICE')).toContainText('R$ 1.543,82')
   await expect(cartao(page, 'SAC')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Comparar com SAC' }).click()
-  await expect(cartao(page, 'SAC')).toContainText('R$ 1.887,83')
+  await expect(cartao(page, 'SAC')).toContainText('R$ 1.936,19')
   await expect(page).toHaveURL(/comparar=1/)
 })
 
@@ -249,4 +249,25 @@ test('entrada em percentual do imóvel', async ({ page }) => {
   await page.goto('/')
   await digitar(page, /^Entrada$/, '30%')
   await expect(page.getByText(/R\$\s75\.000,00 · Valor financiado: R\$\s175\.000,00/)).toBeVisible()
+})
+
+test('cliente que já tem imóvel no nome vai para o SBPE, no SAC, e passa ou não pela renda', async ({ page }) => {
+  await page.goto('/?renda=6000')
+  await page.getByLabel('Já tem imóvel no nome?').selectOption('sim')
+  await expect(page.getByText(/Quem já tem imóvel no nome não pode usar o Minha Casa, Minha Vida/)).toBeVisible()
+  await expect(page.getByLabel('Taxa de juros')).toHaveValue('11,39')
+  // Com R$ 6 mil, o SAC no SBPE passa do limite: reprovado.
+  await expect(page.getByRole('heading', { name: 'Não aprovado pela renda' })).toBeVisible()
+  await expect(page).toHaveURL(/temImovel=1/)
+
+  await digitar(page, 'Renda bruta mensal', '9000')
+  await expect(page.getByRole('heading', { name: 'Financiamento no SAC' })).toBeVisible()
+})
+
+test('teto das Faixas 1 e 2 da cidade: acima dele, o imóvel entra na Faixa 3', async ({ page }) => {
+  await page.goto('/?renda=2500&valor=220000&entrada=60000')
+  await expect(page.getByText('Minha Casa, Minha Vida · Faixa 1').first()).toBeVisible()
+  await digitar(page, 'Teto das Faixas 1 e 2 na cidade', '210000')
+  await expect(page.getByText('Minha Casa, Minha Vida · Faixa 3').first()).toBeVisible()
+  await expect(page.getByText(/Pela renda seria Faixa 1/)).toBeVisible()
 })
