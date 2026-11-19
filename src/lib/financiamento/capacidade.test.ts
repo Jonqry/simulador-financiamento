@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { capacidadeDeCompra, type ParametrosCapacidade } from './capacidade'
+import { capacidadeDeCompra, entradaNecessaria, type ParametrosCapacidade } from './capacidade'
 import { aplicarEncargos, ENCARGOS_EXEMPLO, SEM_ENCARGOS } from './encargos'
 import { gerarTabela } from './motor'
 import { taxaMensalDeAnualEfetiva } from './taxas'
@@ -96,5 +96,46 @@ describe('capacidadeDeCompra', () => {
 
   it('rejeita entrada inválida', () => {
     expect(() => capacidadeDeCompra('SAC', { ...BASE, entrada: -1 })).toThrow(RangeError)
+  })
+})
+
+describe('entradaNecessaria', () => {
+  // O mesmo imóvel de R$ 400 mil, com renda que não aguenta financiar 80%.
+  const IMOVEL = {
+    valorImovel: 400_000_00,
+    rendaMensal: 9_000_00,
+    taxaMensal: taxaMensalDeAnualEfetiva(0.1149),
+    prazoMeses: 360,
+    encargos: ENCARGOS_EXEMPLO,
+  }
+  const maiorParcelaComImovelFixo = (sistema: Sistema, principal: number) =>
+    Math.max(
+      ...aplicarEncargos(
+        gerarTabela(sistema, { principal, taxaMensal: IMOVEL.taxaMensal, prazoMeses: IMOVEL.prazoMeses }),
+        principal,
+        IMOVEL.valorImovel,
+        IMOVEL.encargos,
+      ).map((parcela) => parcela.total),
+    )
+
+  it.each(['SAC', 'PRICE'] as const)('%s: é a menor entrada que faz a parcela caber nos 30%% da renda', (sistema) => {
+    const entrada = entradaNecessaria(sistema, IMOVEL)
+    const financiado = IMOVEL.valorImovel - entrada
+    expect(entrada).toBeGreaterThan(80_000_00) // mais que os 20% da cota
+    expect(maiorParcelaComImovelFixo(sistema, financiado)).toBeLessThanOrEqual(2_700_00)
+    expect(maiorParcelaComImovelFixo(sistema, financiado + 1)).toBeGreaterThan(2_700_00)
+  })
+
+  it('a PRICE pede menos entrada que o SAC', () => {
+    expect(entradaNecessaria('PRICE', IMOVEL)).toBeLessThan(entradaNecessaria('SAC', IMOVEL))
+  })
+
+  it('com renda de sobra, quem manda é a cota', () => {
+    expect(entradaNecessaria('SAC', { ...IMOVEL, rendaMensal: 100_000_00 })).toBe(80_000_00)
+    expect(entradaNecessaria('SAC', { ...IMOVEL, rendaMensal: 100_000_00, cota: 0.6 })).toBe(160_000_00)
+  })
+
+  it('respeita outro limite de renda', () => {
+    expect(entradaNecessaria('PRICE', { ...IMOVEL, limiteRenda: 0.35 })).toBeLessThan(entradaNecessaria('PRICE', IMOVEL))
   })
 })

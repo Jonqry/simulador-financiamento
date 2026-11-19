@@ -1,11 +1,12 @@
-import type { Centavos, Taxa } from './financiamento'
+import type { Centavos, Sistema, Taxa } from './financiamento'
 
 /**
  * TAXAS DE REFERÊNCIA DE MERCADO — dados que MUDAM com o tempo.
  *
  * Ficam isolados neste arquivo (e não espalhados pela interface) para que
  * atualizar seja trocar números aqui e a data abaixo. A tela mostra a fonte e
- * a data, e a taxa nunca é aplicada sozinha: o usuário clica em "usar".
+ * a data. A taxa entra sozinha na simulação, mas o corretor pode digitar a do
+ * banco por cima (ver `enquadrar`).
  *
  * Para atualizar: confira a tabela do Minha Casa, Minha Vida no site do
  * Ministério das Cidades e as taxas dos bancos, troque os valores e a data.
@@ -53,30 +54,95 @@ export const TETO_IMOVEL_MCMV: Record<LinhaMcmv['faixa'], Centavos> = {
   4: 600_000_00,
 }
 
-/** Faixa de taxas de mercado (SBPE), "a partir de", sem contar a TR. */
-export const TAXAS_MERCADO = { minima: 0.1026, maxima: 0.15 } as const
+/**
+ * Taxas de mercado (SBPE), "a partir de", sem contar a TR. A `referencia` é a
+ * que entra na simulação automática; o corretor troca pela da proposta.
+ */
+export const TAXAS_MERCADO = { minima: 0.1026, maxima: 0.15, referencia: 0.1026 } as const
 
-export type SugestaoTaxa =
-  | { tipo: 'mcmv'; faixa: LinhaMcmv['faixa']; taxaAnual: Taxa; tetoImovel: Centavos }
-  | { tipo: 'mercado'; minima: Taxa; maxima: Taxa }
+export type Faixa = LinhaMcmv['faixa']
 
 /**
- * Sugere uma taxa de referência pela renda bruta familiar mensal.
- * Até R$ 13 mil: Minha Casa, Minha Vida (depende de região e de ser cotista
- * do FGTS). Acima disso: faixa de taxas de mercado.
+ * Em qual programa o cliente se enquadra e com que taxa a simulação roda.
+ * `tetoImovel` é o maior imóvel desse enquadramento (no SBPE, sem teto: Infinity).
  */
-export function sugerirTaxa(rendaMensal: Centavos, regiao: Regiao, cotista: boolean): SugestaoTaxa {
+export type Enquadramento =
+  | {
+      programa: 'MCMV'
+      faixa: Faixa
+      /** Faixa só pela renda. Diferente de `faixa` quando o imóvel passou do teto e subiu de faixa. */
+      faixaPelaRenda: Faixa
+      taxaAnual: Taxa
+      tetoImovel: Centavos
+    }
+  | {
+      programa: 'SBPE'
+      /** Fora do MCMV pela renda (acima de R$ 13 mil) ou pelo valor do imóvel (acima de todos os tetos). */
+      motivo: 'renda' | 'imovel'
+      taxaAnual: Taxa
+      tetoImovel: Centavos
+    }
+
+const taxaDaLinha = (l: LinhaMcmv, regiao: Regiao, cotista: boolean): Taxa => l.taxas[cotista ? 'cotista' : 'naoCotista'][regiao]
+
+/**
+ * Os enquadramentos possíveis para essa renda, do mais barato ao mais caro.
+ *
+ * A faixa vem da renda. Se o imóvel passa do teto da faixa, ele sobe para a
+ * próxima faixa cujo teto é maior, com a taxa dela (ex.: renda de Faixa 3 e
+ * imóvel de R$ 450 mil → Faixa 4, 10%). Acima do teto da Faixa 4, SBPE.
+ * Faixas com o mesmo teto (1 e 2) não viram degraus separados.
+ */
+export function patamaresPelaRenda(rendaMensal: Centavos, regiao: Regiao, cotista: boolean): Enquadramento[] {
   if (!Number.isFinite(rendaMensal) || rendaMensal <= 0) {
     throw new RangeError(`Renda deve ser positiva (recebido: ${rendaMensal})`)
   }
-  const encontrada = TABELA_MCMV.find((l) => rendaMensal <= l.rendaAte)
-  if (!encontrada) {
-    return { tipo: 'mercado', ...TAXAS_MERCADO }
+  const sbpe = (motivo: 'renda' | 'imovel'): Enquadramento => ({
+    programa: 'SBPE',
+    motivo,
+    taxaAnual: TAXAS_MERCADO.referencia,
+    tetoImovel: Number.POSITIVE_INFINITY,
+  })
+
+  const linha = TABELA_MCMV.find((l) => rendaMensal <= l.rendaAte)
+  if (!linha) return [sbpe('renda')]
+
+  const patamares: Enquadramento[] = []
+  let tetoAnterior = 0
+  for (const outra of TABELA_MCMV) {
+    // A linha da própria renda e, acima dela, a primeira linha de cada faixa com teto maior.
+    const valeComoDegrau = outra === linha || (outra.faixa > linha.faixa && TETO_IMOVEL_MCMV[outra.faixa] > tetoAnterior)
+    if (!valeComoDegrau) continue
+    tetoAnterior = TETO_IMOVEL_MCMV[outra.faixa]
+    patamares.push({
+      programa: 'MCMV',
+      faixa: outra.faixa,
+      faixaPelaRenda: linha.faixa,
+      taxaAnual: taxaDaLinha(outra, regiao, cotista),
+      tetoImovel: tetoAnterior,
+    })
   }
-  return {
-    tipo: 'mcmv',
-    faixa: encontrada.faixa,
-    taxaAnual: encontrada.taxas[cotista ? 'cotista' : 'naoCotista'][regiao],
-    tetoImovel: TETO_IMOVEL_MCMV[encontrada.faixa],
-  }
+  patamares.push(sbpe('imovel'))
+  return patamares
+}
+
+/**
+ * Enquadra o cliente pela renda e pelo valor do imóvel. Sem o valor do imóvel
+ * (ainda não digitado, ou no modo "quanto posso comprar"), usa a faixa da renda.
+ *
+ * O teto é inclusivo: R$ 400.000,00 ainda é Faixa 3; R$ 400.000,01 já não é.
+ */
+export function enquadrar(rendaMensal: Centavos, valorImovel: Centavos | null, regiao: Regiao, cotista: boolean): Enquadramento {
+  // O último patamar (SBPE) não tem teto, então o find sempre encontra.
+  return patamaresPelaRenda(rendaMensal, regiao, cotista).find((p) => valorImovel === null || valorImovel <= p.tetoImovel)!
+}
+
+/** Sistema que abre por padrão: no MCMV quase sempre se usa PRICE; no SBPE, SAC. */
+export function sistemaPadrao(enquadramento: Enquadramento): Sistema {
+  return enquadramento.programa === 'MCMV' ? 'PRICE' : 'SAC'
+}
+
+/** Nome do enquadramento para a tela e para o resumo do cliente. */
+export function descreverPrograma(enquadramento: Enquadramento): string {
+  return enquadramento.programa === 'MCMV' ? `Minha Casa, Minha Vida · Faixa ${enquadramento.faixa}` : 'SBPE (taxa de mercado)'
 }

@@ -6,7 +6,8 @@ import { expect, test, type Page } from '@playwright/test'
  * ponta a ponta: build, carregamento sob demanda dos gráficos, URL, cópia.
  */
 
-const LINK_PADRAO = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&mip=0.025&dfi=0.01&adm=25'
+// Taxa manual e renda acima do MCMV (SBPE, SAC em destaque), comparando com a PRICE.
+const LINK_PADRAO = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&mip=0.025&dfi=0.01&adm=25&comparar=1'
 
 const cartao = (page: Page, titulo: 'SAC' | 'Tabela PRICE') =>
   page.getByRole('article').filter({ has: page.getByRole('heading', { name: titulo, exact: true }) })
@@ -154,9 +155,10 @@ test('tem as tags de prévia para WhatsApp/LinkedIn', async ({ page, request }) 
 test('corretor: taxa pela renda, imóvel máximo e resumo para o cliente', async ({ page, context, browserName }) => {
   await page.goto(LINK_PADRAO)
 
-  await digitar(page, 'Renda bruta mensal', '7000')
-  await expect(page.getByText(/Faixa 3/)).toBeVisible()
-  await page.getByRole('button', { name: /^Usar / }).click()
+  await digitar(page, 'Renda bruta mensal', '9000')
+  await expect(page.getByText('Minha Casa, Minha Vida · Faixa 3').first()).toBeVisible()
+  // O link veio com a taxa do banco (manual); voltar para a automática aplica a da faixa.
+  await page.getByRole('button', { name: 'Voltar para a taxa automática' }).click()
   await expect(page.getByLabel('Taxa de juros')).toHaveValue('8,16')
 
   const capacidade = page.locator('section').filter({ has: page.getByRole('heading', { name: /Até quanto/ }) })
@@ -169,4 +171,82 @@ test('corretor: taxa pela renda, imóvel máximo e resumo para o cliente', async
     expect(resumo).toContain('Simulação de financiamento imobiliário')
     expect(resumo).toContain('8,16% ao ano')
   }
+})
+
+test('a taxa acompanha o imóvel: R$ 400.000 é Faixa 3 e R$ 400.001 já é Faixa 4', async ({ page }) => {
+  await page.goto('/?renda=6000&entrada=100000')
+  const taxa = page.getByLabel('Taxa de juros')
+
+  await digitar(page, 'Valor do imóvel', '400000')
+  await expect(taxa).toHaveValue('8,16')
+  await digitar(page, 'Valor do imóvel', '400001')
+  await expect(taxa).toHaveValue('10')
+  await expect(page.getByText(/Pela renda seria Faixa 3/)).toBeVisible()
+  // Taxa automática não vai para o link: quem abrir recalcula pela faixa.
+  await expect(page).not.toHaveURL(/taxa=/)
+})
+
+test('digitar a taxa do banco troca para manual, e dá para voltar à automática', async ({ page }) => {
+  await page.goto('/')
+  await digitar(page, 'Taxa de juros', '9,5')
+  await expect(page.getByText(/Taxa digitada/)).toBeVisible()
+  await expect(page).toHaveURL(/taxa=9.5/)
+
+  await page.getByRole('button', { name: 'Voltar para a taxa automática' }).click()
+  await expect(page.getByLabel('Taxa de juros')).toHaveValue('8,16')
+  await expect(page).not.toHaveURL(/taxa=/)
+})
+
+test('MCMV abre na PRICE; o SAC aparece só ao comparar', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeVisible()
+  await expect(cartao(page, 'Tabela PRICE')).toContainText('R$ 1.501,65')
+  await expect(cartao(page, 'SAC')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Comparar com SAC' }).click()
+  await expect(cartao(page, 'SAC')).toContainText('R$ 1.887,83')
+  await expect(page).toHaveURL(/comparar=1/)
+})
+
+test('SBPE abre no SAC', async ({ page }) => {
+  await page.goto('/?valor=700000&entrada=200000&renda=25000')
+  await expect(page.getByRole('heading', { name: 'Financiamento no SAC' })).toBeVisible()
+  await expect(page.getByText('SBPE (taxa de mercado)').first()).toBeVisible()
+})
+
+test('reprovado pela renda: bloqueia o envio e mostra o que resolve', async ({ page }) => {
+  await page.goto('/?renda=4000')
+
+  await expect(page.getByRole('heading', { name: 'Não aprovado pela renda' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Enviar resumo no WhatsApp' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Copiar resumo' })).toBeDisabled()
+  // O resultado normal (cartão, tabela) não aparece: não dá para "ler por cima" e achar que passou.
+  await expect(page.getByRole('table')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Simular o imóvel máximo' }).click()
+  await expect(page.getByRole('heading', { name: /^Imóvel de até R\$/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Enviar resumo no WhatsApp' })).toBeVisible()
+  await expect(page).toHaveURL(/modo=renda/)
+})
+
+test('quanto posso comprar: calcula o imóvel pela renda', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Quanto posso comprar' }).click()
+  await expect(page.getByLabel('Valor do imóvel')).toHaveCount(0)
+  await digitar(page, 'Entrada', '150000')
+  await expect(page.getByRole('heading', { name: /^Imóvel de até R\$/ })).toContainText('R$')
+  await expect(page.getByText(/Quem limita é/)).toBeVisible()
+})
+
+test('prazo em anos', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('Meses ou anos').selectOption('anos')
+  await expect(page.getByLabel('Prazo')).toHaveValue('35')
+  await expect(page).toHaveURL(/prazo=420.*prazoEm=anos/)
+})
+
+test('entrada em percentual do imóvel', async ({ page }) => {
+  await page.goto('/')
+  await digitar(page, /^Entrada$/, '30%')
+  await expect(page.getByText(/R\$\s75\.000,00 · Valor financiado: R\$\s175\.000,00/)).toBeVisible()
 })

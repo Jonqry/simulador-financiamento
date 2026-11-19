@@ -15,7 +15,8 @@ beforeAll(() => {
 
 // Os testes abrem um link explícito em vez de depender do cenário padrão:
 // mudar os valores iniciais do formulário não deve quebrar testes de comportamento.
-const LINK_BASE = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000'
+// Taxa do banco (manual), renda acima do MCMV (SBPE: SAC em destaque) e comparando com a PRICE.
+const LINK_BASE = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&comparar=1'
 
 beforeEach(() => {
   window.history.replaceState(null, '', LINK_BASE)
@@ -27,18 +28,31 @@ afterEach(cleanup)
 const texto = (el: HTMLElement) => el.textContent?.replace(/\s/g, ' ')
 
 describe('App', () => {
-  it('sem parâmetros na URL, abre num cenário típico do MCMV', () => {
+  it('sem parâmetros na URL, abre num cenário típico do MCMV, na PRICE', () => {
     window.history.replaceState(null, '', '/')
     render(<App />)
     expect(screen.getByLabelText('Valor do imóvel')).toHaveProperty('value', '250.000')
     expect(screen.getByLabelText('Prazo')).toHaveProperty('value', '420')
+    // Taxa automática: Faixa 3, não cotista.
+    expect(screen.getByLabelText('Taxa de juros')).toHaveProperty('value', '8,16')
+    expect(screen.getAllByText('Minha Casa, Minha Vida · Faixa 3').length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeTruthy()
     // Valores conferidos com implementação independente em Python.
+    const price = screen.getByRole('heading', { name: 'Tabela PRICE' }).closest('article')!
+    expect(texto(price)).toContain('R$ 1.501,65')
+    // O SAC só aparece quando o corretor pede a comparação.
+    expect(screen.queryByRole('heading', { name: 'SAC', level: 3 })).toBeNull()
+  })
+
+  it('"Comparar com SAC" mostra o SAC ao lado', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Comparar com SAC' }))
     const sac = screen.getByRole('heading', { name: 'SAC', level: 3 }).closest('article')!
     expect(texto(sac)).toContain('R$ 1.887,83')
     expect(within(sac).getByText('Acima do limite')).toBeTruthy()
-    const price = screen.getByRole('heading', { name: 'Tabela PRICE' }).closest('article')!
-    expect(texto(price)).toContain('R$ 1.501,65')
-    expect(screen.getByText(/Faixa 3/)).toBeTruthy()
+    expect(window.location.search).toContain('comparar=1')
   })
 
   it('abre um link com os valores e mostra a comparação, já com seguros e taxa', () => {
@@ -127,7 +141,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /copiar link/i })).toHaveProperty('disabled', true)
   })
 
-  it('alerta quando a parcela do SAC passa de 30% da renda', async () => {
+  it('comparando, alerta quando a parcela do outro sistema passa de 30% da renda', async () => {
     const user = userEvent.setup()
     render(<App />)
     const renda = screen.getByLabelText('Renda bruta mensal')
@@ -168,22 +182,30 @@ describe('App', () => {
     expect(texto(painel())).toContain('Quem limita é a renda')
   })
 
-  it('sugere a taxa do MCMV pela renda e aplica com um clique', async () => {
+  it('a taxa vem sozinha da faixa e acompanha região, FGTS e o valor do imóvel', async () => {
     const user = userEvent.setup()
+    window.history.replaceState(null, '', '/?renda=7000&entrada=100000')
     render(<App />)
-    // Renda padrão (R$ 15 mil) está acima do MCMV: mostra taxas de mercado.
-    expect(screen.getByText(/Renda acima do Minha Casa, Minha Vida/)).toBeTruthy()
-
-    const renda = screen.getByLabelText('Renda bruta mensal')
-    await user.clear(renda)
-    await user.type(renda, '7000')
-    expect(screen.getByText(/Faixa 3/)).toBeTruthy()
+    const taxa = () => screen.getByLabelText('Taxa de juros')
+    expect(taxa()).toHaveProperty('value', '8,16')
 
     await user.selectOptions(screen.getByLabelText('Cotista do FGTS'), 'sim')
-    await user.click(screen.getByRole('button', { name: 'Usar 7,66%' }))
-    expect(screen.getByLabelText('Taxa de juros')).toHaveProperty('value', '7,66')
-    // O imóvel padrão (R$ 400 mil) está no teto da Faixa 3: sem aviso.
-    expect(screen.queryByText(/passa do teto da faixa/)).toBeNull()
+    expect(taxa()).toHaveProperty('value', '7,66')
+
+    // R$ 400.000 ainda é Faixa 3; R$ 400.001 já sobe para a Faixa 4 (10%).
+    const valor = screen.getByLabelText('Valor do imóvel')
+    await user.clear(valor)
+    await user.type(valor, '400000')
+    expect(taxa()).toHaveProperty('value', '7,66')
+    await user.clear(valor)
+    await user.type(valor, '400001')
+    expect(taxa()).toHaveProperty('value', '10')
+    expect(screen.getByText(/Pela renda seria Faixa 3/)).toBeTruthy()
+  })
+
+  it('acima de R$ 13 mil de renda, avisa que é taxa de mercado', () => {
+    render(<App />)
+    expect(screen.getByText(/Renda acima de R\$ 13 mil: fora do Minha Casa, Minha Vida/)).toBeTruthy()
   })
 
   it('copia um resumo pronto para WhatsApp, sem a renda do cliente', async () => {
@@ -314,11 +336,69 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Enviar resumo no WhatsApp' })).toHaveProperty('disabled', true)
   })
 
-  it('avisa quando a taxa sugerida já está em uso', () => {
+  it('digitar a taxa do banco troca para manual; um botão volta para a automática', async () => {
+    const user = userEvent.setup()
     window.history.replaceState(null, '', '/')
     render(<App />)
-    expect(screen.getByText(/Você já está usando esta taxa/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /^Usar / })).toBeNull()
+    const taxa = screen.getByLabelText('Taxa de juros')
+    expect(window.location.search).not.toContain('taxa=')
+    await user.clear(taxa)
+    await user.type(taxa, '9,5')
+    expect(window.location.search).toContain('taxa=9.5')
+
+    await user.click(screen.getByRole('button', { name: 'Voltar para a taxa automática' }))
+    expect(screen.getByLabelText('Taxa de juros')).toHaveProperty('value', '8,16')
+    expect(window.location.search).not.toContain('taxa=')
+  })
+
+  it('reprovado pela renda: o resultado vira o que resolve e o envio fica bloqueado', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/?renda=4000')
+    render(<App />)
+    const painel = screen.getByRole('heading', { name: 'Não aprovado pela renda' }).closest('section')!
+    // Valores conferidos pelos testes da lib (montar.test.ts).
+    expect(texto(painel)).toContain('Um imóvel de até R$ 246.785,40')
+    expect(texto(painel)).toContain('Entrada de R$ 53.268,22')
+    expect(texto(painel)).toContain('Renda de R$ 4.063,70')
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Enviar resumo no WhatsApp' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Enviar resumo no WhatsApp' })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: 'Copiar resumo' })).toHaveProperty('disabled', true)
+
+    await user.click(screen.getByRole('button', { name: 'Simular o imóvel máximo' }))
+    // O nome acessível mantém o espaço especial do "R$": regex com \s.
+    expect(screen.getByRole('heading', { name: /^Imóvel de até R\$\s246\.785,40$/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Enviar resumo no WhatsApp' })).toBeTruthy()
+  })
+
+  it('reprovado no sistema escolhido, mas o outro cabe: oferece trocar', async () => {
+    const user = userEvent.setup()
+    // No cenário padrão o SAC usa 31,46% da renda e a PRICE, 25,03%.
+    window.history.replaceState(null, '', '/?sistema=SAC')
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Não aprovado pela renda' })).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Usar PRICE' }))
+    expect(screen.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeTruthy()
+  })
+
+  it('"Quanto posso comprar" esconde o valor do imóvel e calcula o máximo pela renda', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Quanto posso comprar' }))
+    expect(screen.queryByLabelText('Valor do imóvel')).toBeNull()
+    expect(screen.getByRole('heading', { name: /^Imóvel de até R\$/ })).toBeTruthy()
+    expect(window.location.search).toContain('modo=renda')
+  })
+
+  it('prazo em anos: troca a unidade convertendo o número', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    await user.selectOptions(screen.getByLabelText('Meses ou anos'), 'anos')
+    expect(screen.getByLabelText('Prazo')).toHaveProperty('value', '35')
+    expect(window.location.search).toContain('prazo=420')
+    expect(window.location.search).toContain('prazoEm=anos')
   })
 
   it('copia o link da simulação', async () => {

@@ -628,3 +628,41 @@ formulário e resultado.
 elementos pelo que o usuário vê e lê, não por classe CSS, então trocar o
 visual inteiro não exigiu mexer em nenhum teste.
 
+
+## 32. Foco no MCMV: taxa automática, PRICE em destaque e reprovação pela renda
+
+Usando o simulador no plantão, três coisas não batiam com a rotina:
+
+- **SAC × PRICE como primeira tela.** No MCMV quase todo mundo financia na
+  PRICE; o SAC é mais do SBPE. Agora o sistema em destaque segue o programa
+  (MCMV → PRICE, SBPE → SAC), o outro aparece em "Comparar com…", e o corretor
+  pode escolher qualquer um (`sistema=` e `comparar=1` no link).
+- **Taxa por clique.** A seção 26 dizia "sugestão, nunca automática". Na
+  prática, ninguém clicava em "usar", e a simulação seguia com a taxa errada.
+  A taxa agora sai do enquadramento; digitar no campo passa a valer a taxa do
+  banco (manual, salva no link), e um botão volta para a automática. Links
+  antigos com `taxa=` abrem como taxa manual, então reproduzem o que o
+  corretor enviou.
+- **Teto como aviso.** O enquadramento antes olhava só a renda: um imóvel de
+  R$ 400.001 com renda de Faixa 3 simulava a 8,16% e só mostrava um aviso.
+  Agora o imóvel sobe de faixa (Faixa 3 → 4, a 10%) e, acima do teto da
+  Faixa 4, vai para o SBPE. O teto é inclusivo, e há teste nas duas bordas.
+  Faixas 1 e 2 acima de R$ 275 mil sobem para a 3, como na regra de 2025.
+- **Alerta de renda que ninguém lê.** Quando a maior parcela passa do limite,
+  o resultado inteiro vira "Não aprovado pela renda", sem cartão, tabela ou
+  gráfico para ler por cima, o botão do WhatsApp fica bloqueado, e o painel
+  mostra o que resolve: o imóvel máximo, a entrada e a renda necessárias, e o
+  outro sistema, se ele couber. "Perto do limite" continua só como aviso.
+
+**Imóvel máximo com faixas.** A taxa depende do imóvel (pelo teto) e o imóvel
+máximo depende da taxa. Em vez de iterar até convergir, `imovelMaximoPelaRenda`
+testa cada degrau (faixa da renda, faixas acima, SBPE) com a taxa e o teto
+dele; um degrau só vale se o imóvel cai mesmo nele. Fica o maior.
+
+**Entrada necessária** usa a mesma busca binária da capacidade de compra, mas
+com o imóvel fixo (o DFI não muda), e o teste confere a borda: com essa
+entrada passa, com R$ 1 a menos não.
+
+**Mais flexível, sem virar planilha:** entrada com FGTS e subsídio (ou em
+percentual: "20%"), prazo em meses ou anos, taxa efetiva ou nominal e limite
+de renda editável. Tudo opcional, com o padrão de antes.

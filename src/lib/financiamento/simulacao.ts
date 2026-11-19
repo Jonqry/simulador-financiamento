@@ -3,8 +3,8 @@ import { calcularCetAnual } from './cet'
 import { aplicarEncargos, type ComEncargos, type Encargos } from './encargos'
 import { extrasRecorrentes, gerarTabela, type ModoAmortizacaoExtra, type ParcelaComExtra } from './motor'
 import { calcularFaseObra, MESES_OBRA_MAXIMO, resumirObra, type ParcelaObra, type ResumoObra } from './obra'
-import { avaliarComprometimento, type Comprometimento } from './renda'
-import { taxaMensalDeAnualEfetiva } from './taxas'
+import { avaliarComprometimento, LIMITE_COMPROMETIMENTO_PADRAO, type Comprometimento } from './renda'
+import { taxaMensalDeAnualEfetiva, taxaMensalDeAnualNominal } from './taxas'
 import type { Centavos, Parcela, ParametrosAmortizacao, ResumoSistema, Sistema, Taxa } from './tipos'
 import { PRAZO_MAXIMO_MESES } from './validacao'
 
@@ -15,9 +15,16 @@ import { PRAZO_MAXIMO_MESES } from './validacao'
  */
 export interface EntradaSimulacao {
   valorImovel: Centavos
+  /** Entrada em recursos próprios. FGTS e subsídio, se houver, somam a ela. */
   entrada: Centavos
-  /** Taxa de juros anual efetiva, em decimal (11,49% = 0.1149). */
+  /** FGTS usado na entrada. Padrão: 0. */
+  fgtsEntrada?: Centavos
+  /** Subsídio (desconto) do MCMV, que abate o valor a financiar como parte da entrada. Padrão: 0. */
+  subsidio?: Centavos
+  /** Taxa de juros anual, em decimal (11,49% = 0.1149). Efetiva, a não ser que `taxaNominal`. */
   taxaAnual: Taxa
+  /** A taxa anual é nominal (mensal = anual / 12) em vez de efetiva. Padrão: efetiva. */
+  taxaNominal?: boolean
   prazoMeses: number
   rendaMensal: Centavos
   /** Seguro MIP, % ao mês sobre o saldo devedor (0,025% = 0.00025). Padrão: 0. */
@@ -34,6 +41,8 @@ export interface EntradaSimulacao {
   extraIntervalo?: number
   /** Parte máxima do imóvel que o banco financia (0.8 = 80%). Padrão: 80%. */
   cotaFinanciamento?: Taxa
+  /** Parte máxima da renda para a parcela (0.3 = 30%). Padrão: 30%. */
+  limiteRenda?: Taxa
   /** Imóvel na planta: meses até a entrega das chaves. 0 ou ausente = imóvel pronto. */
   obraMeses?: number
   /** Quanto da obra já está executado na assinatura (0.3 = 30%). Padrão: 0. */
@@ -85,7 +94,10 @@ export interface ResumoExtra {
 export type ComparacaoExtra = Record<Sistema, Record<ModoAmortizacaoExtra, ResumoExtra>>
 
 export interface ResultadoSimulacao {
+  /** Entrada total: recursos próprios + FGTS + subsídio. */
   entrada: Centavos
+  /** Limite de renda usado no comprometimento e na capacidade de compra. */
+  limiteRenda: Taxa
   /** Cota de financiamento usada na capacidade de compra. */
   cotaFinanciamento: Taxa
   valorFinanciado: Centavos
@@ -108,8 +120,24 @@ export interface ResultadoSimulacao {
   obra?: ResultadoObra
 }
 
-export type CampoSimulacao = keyof EntradaSimulacao
+/** Campos numéricos (a taxa nominal é uma opção, não um campo digitado). */
+export type CampoSimulacao = Exclude<keyof EntradaSimulacao, 'taxaNominal'>
 export type ErrosSimulacao = Partial<Record<CampoSimulacao, string>>
+
+/** Recursos próprios + FGTS + subsídio: tudo o que abate o valor a financiar. */
+export function entradaTotal(e: Pick<EntradaSimulacao, 'entrada' | 'fgtsEntrada' | 'subsidio'>): Centavos {
+  return e.entrada + (e.fgtsEntrada ?? 0) + (e.subsidio ?? 0)
+}
+
+/** Seguros e taxa de administração informados (vazios valem 0). */
+export function encargosDaEntrada(e: Pick<EntradaSimulacao, 'mipMensal' | 'dfiMensal' | 'taxaAdministracao'>): Encargos {
+  return { mipMensal: e.mipMensal ?? 0, dfiMensal: e.dfiMensal ?? 0, taxaAdministracao: e.taxaAdministracao ?? 0 }
+}
+
+/** Taxa mensal equivalente, conforme a anual seja efetiva ou nominal. */
+export function taxaMensalDaEntrada(e: Pick<EntradaSimulacao, 'taxaAnual' | 'taxaNominal'>): Taxa {
+  return e.taxaNominal ? taxaMensalDeAnualNominal(e.taxaAnual) : taxaMensalDeAnualEfetiva(e.taxaAnual)
+}
 
 const ehInteiroEntre = (n: number, min: number, max: number) => Number.isInteger(n) && n >= min && n <= max
 
@@ -123,9 +151,15 @@ export function validarSimulacao(e: EntradaSimulacao): ErrosSimulacao {
   if (!Number.isFinite(e.valorImovel) || e.valorImovel <= 0) {
     erros.valorImovel = 'Informe o valor do imóvel.'
   }
+  for (const campo of ['fgtsEntrada', 'subsidio'] as const) {
+    const valor = e[campo] ?? 0
+    if (!Number.isFinite(valor) || valor < 0) {
+      erros[campo] = 'O valor não pode ser negativo.'
+    }
+  }
   if (!Number.isFinite(e.entrada) || e.entrada < 0) {
     erros.entrada = 'A entrada não pode ser negativa.'
-  } else if (!erros.valorImovel && e.entrada >= e.valorImovel) {
+  } else if (!erros.valorImovel && entradaTotal(e) >= e.valorImovel) {
     erros.entrada = 'A entrada precisa ser menor que o valor do imóvel.'
   }
   if (!Number.isFinite(e.taxaAnual) || e.taxaAnual < 0 || e.taxaAnual > 1) {
@@ -153,6 +187,10 @@ export function validarSimulacao(e: EntradaSimulacao): ErrosSimulacao {
   const cota = e.cotaFinanciamento ?? COTA_FINANCIAMENTO_PADRAO
   if (!Number.isFinite(cota) || cota < 0.1 || cota > 0.9) {
     erros.cotaFinanciamento = 'Use um valor entre 10% e 90%.'
+  }
+  const limiteRenda = e.limiteRenda ?? LIMITE_COMPROMETIMENTO_PADRAO
+  if (!Number.isFinite(limiteRenda) || limiteRenda < 0.1 || limiteRenda > 0.5) {
+    erros.limiteRenda = 'Use um valor entre 10% e 50%.'
   }
 
   const obraMeses = e.obraMeses ?? 0
@@ -226,13 +264,13 @@ function resumirCustos(parcelas: ComEncargos<Parcela & Partial<ParcelaComExtra>>
   }
 }
 
-function montarResultado(parcelas: ParcelaSimulada[], principal: Centavos, rendaMensal: Centavos): ResultadoSistema {
+function montarResultado(parcelas: ParcelaSimulada[], principal: Centavos, rendaMensal: Centavos, limite: Taxa): ResultadoSistema {
   const maiorParcela = Math.max(...parcelas.map((p) => p.total))
   return {
     parcelas,
     resumo: resumir(parcelas),
     custos: resumirCustos(parcelas, principal),
-    comprometimento: avaliarComprometimento(maiorParcela, rendaMensal),
+    comprometimento: avaliarComprometimento(maiorParcela, rendaMensal, { limite }),
   }
 }
 
@@ -272,14 +310,12 @@ export function simular(entrada: EntradaSimulacao): ResultadoSimulacao {
     throw new RangeError(primeiroErro)
   }
 
-  const valorFinanciado = entrada.valorImovel - entrada.entrada
-  const taxaMensal = taxaMensalDeAnualEfetiva(entrada.taxaAnual)
+  const entradaReal = entradaTotal(entrada)
+  const valorFinanciado = entrada.valorImovel - entradaReal
+  const taxaMensal = taxaMensalDaEntrada(entrada)
+  const limiteRenda = entrada.limiteRenda ?? LIMITE_COMPROMETIMENTO_PADRAO
   const params = { principal: valorFinanciado, taxaMensal, prazoMeses: entrada.prazoMeses }
-  const encargos: Encargos = {
-    mipMensal: entrada.mipMensal ?? 0,
-    dfiMensal: entrada.dfiMensal ?? 0,
-    taxaAdministracao: entrada.taxaAdministracao ?? 0,
-  }
+  const encargos = encargosDaEntrada(entrada)
 
   const tabela = (sistema: Sistema) =>
     aplicarEncargos(
@@ -289,18 +325,20 @@ export function simular(entrada: EntradaSimulacao): ResultadoSimulacao {
       encargos,
     )
   const paramsCapacidade = {
-    entrada: entrada.entrada,
+    entrada: entradaReal,
     rendaMensal: entrada.rendaMensal,
     taxaMensal,
     prazoMeses: entrada.prazoMeses,
     encargos,
     cota: entrada.cotaFinanciamento ?? COTA_FINANCIAMENTO_PADRAO,
+    limiteRenda,
   }
-  const sac = montarResultado(tabela('SAC'), valorFinanciado, entrada.rendaMensal)
-  const price = montarResultado(tabela('PRICE'), valorFinanciado, entrada.rendaMensal)
+  const sac = montarResultado(tabela('SAC'), valorFinanciado, entrada.rendaMensal, limiteRenda)
+  const price = montarResultado(tabela('PRICE'), valorFinanciado, entrada.rendaMensal, limiteRenda)
 
   const resultado: ResultadoSimulacao = {
-    entrada: entrada.entrada,
+    entrada: entradaReal,
+    limiteRenda,
     cotaFinanciamento: paramsCapacidade.cota,
     valorFinanciado,
     taxaMensal,

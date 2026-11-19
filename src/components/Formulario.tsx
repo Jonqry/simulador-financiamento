@@ -1,26 +1,33 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
-import { formatarBRL, formatarPercentual, reaisParaCentavos, type CampoSimulacao, type ErrosSimulacao, type ResultadoSimulacao } from '../lib/financiamento'
+import { formatarBRL, formatarPercentual, type CampoSimulacao, type ErrosSimulacao } from '../lib/financiamento'
 import { formatarNumeroBR, parseNumeroBR } from '../lib/formulario/numero'
 import { paraQueryString } from '../lib/formulario/url'
-import { converter, type ValoresFormulario } from '../lib/formulario/valores'
+import { formatarValor, type EstadoFormulario, type OpcoesFormulario, type ValoresFormulario } from '../lib/formulario/valores'
 import { gerarResumoCliente } from '../lib/resumoCliente'
+import { descreverPrograma, type Enquadramento } from '../lib/taxasReferencia'
+import type { SimulacaoPronta } from '../hooks/useSimulacao'
 import { BotaoCompartilhar, BotaoCopiar } from './BotaoCompartilhar'
 import { Campo } from './Campo'
-import { SugestaoTaxa } from './SugestaoTaxa'
+import { ProgramaTaxa } from './ProgramaTaxa'
 
 interface FormularioProps {
   valores: ValoresFormulario
+  opcoes: OpcoesFormulario
   erros: ErrosSimulacao
   alterar: (campo: CampoSimulacao, texto: string) => void
+  alterarOpcao: <K extends keyof OpcoesFormulario>(opcao: K, valor: OpcoesFormulario[K]) => void
+  usarTaxaAutomatica: () => void
   formatar: (campo: CampoSimulacao) => void
   reiniciar: () => void
-  resultado: ResultadoSimulacao | null
+  enquadramento: Enquadramento | null
+  simulacao: SimulacaoPronta | null
 }
 
-function dicaPrazo(texto: string): string | undefined {
-  const meses = parseNumeroBR(texto)
-  if (meses === null || meses <= 0) return undefined
-  const anos = meses / 12
+function dicaPrazo(texto: string, emAnos: boolean): string | undefined {
+  const numero = parseNumeroBR(texto)
+  if (numero === null || numero <= 0) return undefined
+  if (emAnos) return `${Math.round(numero * 12)} meses`
+  const anos = numero / 12
   return Number.isInteger(anos) ? `${anos} ${anos === 1 ? 'ano' : 'anos'}` : `${anos.toFixed(1).replace('.', ',')} anos`
 }
 
@@ -55,49 +62,79 @@ function Secao({ titulo, resumo, temErro, children }: { titulo: string; resumo?:
   )
 }
 
-/**
- * Link da simulação montado a partir dos valores (e não de window.location.href,
- * que só é atualizado depois do render): assim o link do WhatsApp nunca sai atrasado.
- */
-function linkDaSimulacao(valores: ValoresFormulario): string {
-  return `${window.location.origin}${window.location.pathname}?${paraQueryString(valores)}`
+/** Controle segmentado simples (botões com aria-pressed). */
+function Segmentado<T extends string>({
+  rotulo,
+  opcoes,
+  valor,
+  aoAlterar,
+}: {
+  rotulo: string
+  opcoes: readonly { valor: T; rotulo: string }[]
+  valor: T
+  aoAlterar: (valor: T) => void
+}) {
+  return (
+    <div role="group" aria-label={rotulo} className="grid grid-cols-2 rounded-xs border-2 border-tinta bg-branco">
+      {opcoes.map((opcao) => (
+        <button
+          key={opcao.valor}
+          type="button"
+          aria-pressed={valor === opcao.valor}
+          onClick={() => aoAlterar(opcao.valor)}
+          className={`px-2 py-1.5 text-sm font-semibold transition ${
+            valor === opcao.valor ? 'bg-tinta text-branco' : 'text-tinta-suave hover:bg-sol hover:text-tinta'
+          }`}
+        >
+          {opcao.rotulo}
+        </button>
+      ))}
+    </div>
+  )
 }
 
-function textoResumo(valores: ValoresFormulario, resultado: ResultadoSimulacao): string {
-  const conversao = converter(valores)
-  if (!conversao.ok) return linkDaSimulacao(valores)
-  const e = conversao.entrada
+/**
+ * Link da simulação montado a partir do estado (e não de window.location.href,
+ * que só é atualizado depois do render): assim o link do WhatsApp nunca sai atrasado.
+ */
+function linkDaSimulacao(estado: EstadoFormulario): string {
+  return `${window.location.origin}${window.location.pathname}?${paraQueryString(estado)}`
+}
+
+function textoResumo(estado: EstadoFormulario, simulacao: SimulacaoPronta): string {
+  const { entrada: e, resultado } = simulacao
   const intervalo = e.extraIntervalo ?? 0
   const quando = intervalo === 24 ? 'a cada 2 anos' : intervalo === 12 ? 'todo ano' : `no mês ${e.extraMes}`
   return gerarResumoCliente(
     {
       valorImovel: e.valorImovel,
-      entrada: e.entrada,
+      entrada: resultado.entrada,
       taxaAnual: e.taxaAnual,
       prazoMeses: e.prazoMeses,
       temEncargos: (e.mipMensal ?? 0) + (e.dfiMensal ?? 0) + (e.taxaAdministracao ?? 0) > 0,
       descricaoExtra: e.extraValor ? `${formatarBRL(e.extraValor)} ${quando}` : undefined,
+      sistema: simulacao.sistema,
+      comparar: estado.opcoes.comparar,
+      programa: descreverPrograma(simulacao.enquadramento),
     },
     resultado,
-    linkDaSimulacao(valores),
+    linkDaSimulacao(estado),
   )
 }
 
-/** Mostra o valor financiado e avisa se a entrada está abaixo do mínimo pela cota. */
-function dicaEntrada(valores: ValoresFormulario, resultado: ResultadoSimulacao | null): string | undefined {
-  const valorImovel = parseNumeroBR(valores.valorImovel)
-  const entrada = parseNumeroBR(valores.entrada)
-  const cotaPercentual = parseNumeroBR(valores.cotaFinanciamento) ?? 80
-  if (valorImovel !== null && entrada !== null && cotaPercentual > 0 && cotaPercentual < 100) {
-    const entradaMinima = reaisParaCentavos(valorImovel * (1 - cotaPercentual / 100))
-    if (reaisParaCentavos(entrada) < entradaMinima) {
-      return `Atenção: com cota de ${formatarNumeroBR(cotaPercentual)}%, a entrada mínima é ${formatarBRL(entradaMinima)}.`
-    }
+/** Valor financiado, percentual da entrada e aviso de entrada abaixo do mínimo pela cota. */
+function dicaEntrada(simulacao: SimulacaoPronta | null, emPercentual: boolean): string {
+  if (!simulacao) return emPercentual ? 'Em percentual do valor do imóvel.' : 'Aceita percentual do imóvel: ex., 20%.'
+  const { resultado, entrada } = simulacao
+  const entradaMinima = Math.ceil(entrada.valorImovel * (1 - resultado.cotaFinanciamento))
+  if (resultado.entrada < entradaMinima) {
+    return `Atenção: com cota de ${formatarNumeroBR(resultado.cotaFinanciamento * 100)}%, a entrada mínima é ${formatarBRL(entradaMinima)}.`
   }
-  if (!resultado) return undefined
   // Corretor pensa em "20% de entrada": mostra o percentual junto.
-  const percentual = formatarPercentual(resultado.entrada / (resultado.entrada + resultado.valorFinanciado))
-  return `Valor financiado: ${formatarBRL(resultado.valorFinanciado)} · entrada de ${percentual}`
+  const percentual = formatarPercentual(resultado.entrada / entrada.valorImovel)
+  const total = resultado.entrada !== entrada.entrada ? ` (total com FGTS e subsídio: ${formatarBRL(resultado.entrada)})` : ''
+  const emReais = emPercentual ? `${formatarBRL(entrada.entrada)} · ` : ''
+  return `${emReais}Valor financiado: ${formatarBRL(resultado.valorFinanciado)} · entrada de ${percentual}${total}`
 }
 
 const OPCOES_REPETICAO = [
@@ -106,7 +143,23 @@ const OPCOES_REPETICAO = [
   { valor: '12', rotulo: 'Todo ano' },
 ]
 
-export function Formulario({ valores, erros, alterar, formatar, reiniciar, resultado }: FormularioProps) {
+const MODOS = [
+  { valor: 'imovel', rotulo: 'Tenho o imóvel' },
+  { valor: 'renda', rotulo: 'Quanto posso comprar' },
+] as const
+
+export function Formulario({
+  valores,
+  opcoes,
+  erros,
+  alterar,
+  alterarOpcao,
+  usarTaxaAutomatica,
+  formatar,
+  reiniciar,
+  enquadramento,
+  simulacao,
+}: FormularioProps) {
   const idRepetir = useId()
   const campo = (nome: CampoSimulacao) => ({
     valor: valores[nome],
@@ -114,9 +167,26 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
     aoSair: () => formatar(nome),
     erro: erros[nome],
   })
+  const estado = { valores, opcoes }
+  const pelaRenda = opcoes.modo === 'renda'
+  const reprovado = simulacao?.reprovado ?? false
+  const podeEnviar = simulacao !== null && !reprovado
 
-  const resumoCondicoes = `Financia até ${valores.cotaFinanciamento || '80'}% · MIP ${valores.mipMensal || '0'}% · DFI ${valores.dfiMensal || '0'}% · R$ ${valores.taxaAdministracao || '0'}`
+  // Taxa automática: o campo mostra a taxa do enquadramento.
+  const taxaTexto = opcoes.taxaManual
+    ? valores.taxaAnual
+    : enquadramento
+      ? formatarValor('taxaAnual', enquadramento.taxaAnual * 100)
+      : ''
+
+  const resumoCondicoes = `Financia até ${valores.cotaFinanciamento || '80'}% · parcela até ${valores.limiteRenda || '30'}% da renda · MIP ${valores.mipMensal || '0'}% · DFI ${valores.dfiMensal || '0'}% · R$ ${valores.taxaAdministracao || '0'}`
   const temExtra = (parseNumeroBR(valores.extraValor) ?? 0) > 0
+  const fgts = parseNumeroBR(valores.fgtsEntrada) ?? 0
+  const subsidio = parseNumeroBR(valores.subsidio) ?? 0
+  const resumoFgts =
+    fgts + subsidio > 0
+      ? [fgts > 0 && `FGTS R$ ${valores.fgtsEntrada}`, subsidio > 0 && `subsídio R$ ${valores.subsidio}`].filter(Boolean).join(' · ')
+      : 'Opcional'
 
   return (
     <form
@@ -138,24 +208,20 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
         </button>
       </div>
 
-      <Campo rotulo="Valor do imóvel" prefixo="R$" {...campo('valorImovel')} />
+      <Segmentado rotulo="O que simular" opcoes={MODOS} valor={opcoes.modo} aoAlterar={(modo) => alterarOpcao('modo', modo)} />
+
+      {pelaRenda ? (
+        <p className="estreito text-sm text-tinta-suave">
+          O simulador calcula o maior imóvel que cabe na renda com a entrada informada, já na faixa certa do MCMV.
+        </p>
+      ) : (
+        <Campo rotulo="Valor do imóvel" prefixo="R$" {...campo('valorImovel')} />
+      )}
       <Campo
         rotulo="Entrada"
         prefixo="R$"
         {...campo('entrada')}
-        dica={dicaEntrada(valores, resultado)}
-      />
-      <Campo
-        rotulo="Taxa de juros"
-        sufixo="% ao ano"
-        {...campo('taxaAnual')}
-        dica="Taxa efetiva anual, como aparece na simulação do banco."
-      />
-      <Campo
-        rotulo="Prazo"
-        sufixo="meses"
-        {...campo('prazoMeses')}
-        dica={[dicaPrazo(valores.prazoMeses), 'Caixa e BB vão até 420 meses'].filter(Boolean).join(' · ')}
+        dica={pelaRenda ? 'Recursos próprios. FGTS e subsídio ficam na seção abaixo.' : dicaEntrada(simulacao, valores.entrada.includes('%'))}
       />
       <Campo
         rotulo="Renda bruta mensal"
@@ -163,17 +229,50 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
         {...campo('rendaMensal')}
         dica="Soma da renda de quem vai compor o financiamento."
       />
-      <SugestaoTaxa
-        rendaTexto={valores.rendaMensal}
-        taxaTexto={valores.taxaAnual}
-        valorImovelTexto={valores.valorImovel}
-        usarTaxa={(taxa) => alterar('taxaAnual', taxa)}
+
+      <ProgramaTaxa
+        enquadramento={enquadramento}
+        opcoes={opcoes}
+        taxaTexto={taxaTexto}
+        erros={erros}
+        alterarTaxa={(texto) => alterar('taxaAnual', texto)}
+        formatarTaxa={() => formatar('taxaAnual')}
+        usarTaxaAutomatica={usarTaxaAutomatica}
+        alterarOpcao={alterarOpcao}
       />
+
+      <Campo
+        rotulo="Prazo"
+        {...campo('prazoMeses')}
+        sufixo={
+          <select
+            aria-label="Meses ou anos"
+            value={opcoes.prazoEmAnos ? 'anos' : 'meses'}
+            onChange={(e) => alterarOpcao('prazoEmAnos', e.target.value === 'anos')}
+            className="bg-transparent text-sm text-tinta-suave"
+          >
+            <option value="meses">meses</option>
+            <option value="anos">anos</option>
+          </select>
+        }
+        dica={[dicaPrazo(valores.prazoMeses, opcoes.prazoEmAnos), `Caixa e BB vão até ${opcoes.prazoEmAnos ? '35 anos' : '420 meses'}`].filter(Boolean).join(' · ')}
+      />
+
+      <Secao titulo="FGTS e subsídio na entrada" resumo={resumoFgts} temErro={Boolean(erros.fgtsEntrada || erros.subsidio)}>
+        <p className="estreito text-sm text-tinta-suave">Somam à entrada e abatem o valor financiado.</p>
+        <Campo rotulo="FGTS" prefixo="R$" {...campo('fgtsEntrada')} />
+        <Campo
+          rotulo="Subsídio do MCMV"
+          prefixo="R$"
+          {...campo('subsidio')}
+          dica="Desconto do programa (Faixas 1 e 2), conforme a análise da Caixa."
+        />
+      </Secao>
 
       <Secao
         titulo="Condições do banco"
         resumo={resumoCondicoes}
-        temErro={Boolean(erros.cotaFinanciamento || erros.mipMensal || erros.dfiMensal || erros.taxaAdministracao)}
+        temErro={Boolean(erros.cotaFinanciamento || erros.limiteRenda || erros.mipMensal || erros.dfiMensal || erros.taxaAdministracao)}
       >
         <p className="estreito text-sm text-tinta-suave">
           Valores de exemplo; use os da proposta do banco. O MIP varia com a idade. Deixe seguros e taxa em branco para
@@ -184,6 +283,12 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
           sufixo="% do imóvel"
           {...campo('cotaFinanciamento')}
           dica="Quanto do imóvel o banco financia. Comum: 80%. MCMV Faixa 4: 60% a 70%. Alguns bancos: até 90%."
+        />
+        <Campo
+          rotulo="Limite da parcela"
+          sufixo="% da renda"
+          {...campo('limiteRenda')}
+          dica="Acima disso a simulação é reprovada. A maioria dos bancos usa 30%."
         />
         <Campo
           rotulo="Seguro MIP (morte e invalidez)"
@@ -250,9 +355,9 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
 
       <div className="space-y-2 border-t-2 border-tinta pt-4">
         <p className="text-sm font-semibold">Enviar para o cliente</p>
-        {resultado ? (
+        {podeEnviar ? (
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(textoResumo(valores, resultado))}`}
+            href={`https://wa.me/?text=${encodeURIComponent(textoResumo(estado, simulacao))}`}
             target="_blank"
             rel="noreferrer"
             className="botao botao-principal w-full px-4 py-2.5 text-sm"
@@ -264,16 +369,21 @@ export function Formulario({ valores, erros, alterar, formatar, reiniciar, resul
             Enviar resumo no WhatsApp
           </button>
         )}
+        {reprovado && (
+          <p className="estreito text-sm font-semibold text-critico">
+            Não aprovado pela renda: ajuste a simulação antes de enviar ao cliente.
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <BotaoCopiar
             variante="secundario"
             rotulo="Copiar resumo"
             rotuloCopiado="Resumo copiado!"
-            obterTexto={() => (resultado ? textoResumo(valores, resultado) : '')}
-            desabilitado={!resultado}
+            obterTexto={() => (podeEnviar ? textoResumo(estado, simulacao) : '')}
+            desabilitado={!podeEnviar}
             mensagemFalha="Não foi possível copiar."
           />
-          <BotaoCompartilhar desabilitado={!resultado} />
+          <BotaoCompartilhar desabilitado={!simulacao} />
         </div>
       </div>
     </form>

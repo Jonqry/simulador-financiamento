@@ -240,3 +240,50 @@ describe('validarSimulacao: seguros e extra', () => {
     expect(validarSimulacao({ ...ENTRADA, extraValor: 0, extraMes: Number.NaN, extraIntervalo: -5 })).toEqual({})
   })
 })
+
+describe('entrada com FGTS e subsídio', () => {
+  it('FGTS e subsídio abatem o valor financiado junto com a entrada', () => {
+    const r = simular({ ...ENTRADA, entrada: 50_000_00, fgtsEntrada: 20_000_00, subsidio: 10_000_00 })
+    expect(r.entrada).toBe(80_000_00)
+    expect(r.valorFinanciado).toBe(320_000_00)
+    expect(r.price.resumo.primeiraPrestacao).toBe(simular(ENTRADA).price.resumo.primeiraPrestacao)
+  })
+
+  it('a soma também precisa ficar abaixo do valor do imóvel', () => {
+    expect(validarSimulacao({ ...ENTRADA, entrada: 200_000_00, fgtsEntrada: 150_000_00, subsidio: 50_000_00 })).toEqual({
+      entrada: 'A entrada precisa ser menor que o valor do imóvel.',
+    })
+  })
+
+  it.each(['fgtsEntrada', 'subsidio'] as const)('%s negativo é erro', (campo) => {
+    expect(validarSimulacao({ ...ENTRADA, [campo]: -1 })).toEqual({ [campo]: 'O valor não pode ser negativo.' })
+  })
+})
+
+describe('taxa nominal', () => {
+  it('com taxa nominal a mensal é a anual dividida por 12', () => {
+    expect(simular({ ...ENTRADA, taxaAnual: 0.12, taxaNominal: true }).taxaMensal).toBeCloseTo(0.01, 12)
+    expect(simular({ ...ENTRADA, taxaAnual: 0.12 }).taxaMensal).toBeCloseTo(0.009489, 6)
+  })
+})
+
+describe('limite de renda', () => {
+  it('padrão de 30%, usado no comprometimento e na capacidade', () => {
+    const r = simular(ENTRADA)
+    expect(r.limiteRenda).toBe(0.3)
+    expect(r.sac.comprometimento.limite).toBe(0.3)
+  })
+
+  it('outro limite muda o nível e o imóvel máximo', () => {
+    // Renda de R$ 11 mil: PRICE usa 27,5% da renda. Com limite de 25%, passa.
+    const base = simular({ ...ENTRADA, rendaMensal: 11_000_00, entrada: 200_000_00 })
+    const apertado = simular({ ...ENTRADA, rendaMensal: 11_000_00, entrada: 200_000_00, limiteRenda: 0.25 })
+    expect(apertado.limiteRenda).toBe(0.25)
+    expect(apertado.price.comprometimento.limite).toBe(0.25)
+    expect(apertado.capacidade.PRICE.valorMaximoImovel).toBeLessThan(base.capacidade.PRICE.valorMaximoImovel)
+  })
+
+  it.each([0.05, 0.6])('limite %s fora de 10% a 50% é erro', (limiteRenda) => {
+    expect(validarSimulacao({ ...ENTRADA, limiteRenda })).toEqual({ limiteRenda: 'Use um valor entre 10% e 50%.' })
+  })
+})

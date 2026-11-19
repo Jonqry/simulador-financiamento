@@ -5,7 +5,8 @@ import { Glossario } from './components/Glossario'
 import { PainelAmortizacaoExtra } from './components/PainelAmortizacaoExtra'
 import { PainelCapacidade } from './components/PainelCapacidade'
 import { PainelObra } from './components/PainelObra'
-import { ResumoComparacao } from './components/ResumoComparacao'
+import { PainelReprovado } from './components/PainelReprovado'
+import { ResultadoPrincipal } from './components/ResultadoPrincipal'
 import { SeletorSistema } from './components/SeletorSistema'
 import { TabelaAmortizacao } from './components/TabelaAmortizacao'
 import { useSimulacao } from './hooks/useSimulacao'
@@ -34,10 +35,21 @@ function Painel({ titulo, acao, children }: { titulo: string; acao?: ReactNode; 
 }
 
 export default function App() {
-  const { valores, alterar, formatar, reiniciar, erros, resultado } = useSimulacao()
+  const { valores, opcoes, alterar, alterarOpcao, usarTaxaAutomatica, formatar, reiniciar, erros, enquadramento, simulacao } =
+    useSimulacao()
   // Um único seletor para composição e tabela: as duas mostram o mesmo sistema.
-  const [sistema, setSistema] = useState<Sistema>('SAC')
+  // null = acompanha o sistema em destaque (PRICE no MCMV, SAC no SBPE).
+  const [sistemaDetalhe, setSistemaDetalhe] = useState<Sistema | null>(null)
+  const resultado = simulacao?.resultado ?? null
+  const sistema = sistemaDetalhe ?? simulacao?.sistema ?? 'PRICE'
   const detalhe = resultado ? (sistema === 'SAC' ? resultado.sac : resultado.price) : null
+  // O sistema em destaque primeiro; o outro só quando o corretor pede a comparação.
+  const ordem: Sistema[] = simulacao ? [simulacao.sistema, simulacao.outroSistema] : ['PRICE', 'SAC']
+  const sistemasVisiveis = opcoes.comparar ? ordem : ordem.slice(0, 1)
+  const escolherSistema = (s: Sistema) => {
+    alterarOpcao('sistema', s)
+    setSistemaDetalhe(null)
+  }
 
   return (
     <div className="min-h-screen pb-16 lg:pb-0">
@@ -63,12 +75,14 @@ export default function App() {
 
       {/* No computador o título fica na coluna da direita, para o formulário fixo começar logo
           abaixo da faixa do topo: com um cabeçalho alto, em telas baixas os botões do fim do
-          formulário só apareciam depois de rolar a página. */}
-      <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[22rem_1fr]">
+          formulário só apareciam depois de rolar a página. A 2ª linha (1fr) absorve a sobra de
+          altura do formulário: sem isso, com um resultado curto (reprovado), o título esticava. */}
+      <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[22rem_1fr] lg:grid-rows-[auto_1fr]">
         <div className="grade-planta -mx-4 px-4 pt-2 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:px-0">
           <h1 className="text-3xl font-extrabold sm:text-4xl">Simulador de financiamento imobiliário</h1>
           <p className="mt-3 max-w-2xl text-tinta-suave sm:text-lg">
-            Parcela, imóvel máximo e evolução de obra: compare SAC e PRICE e envie ao cliente.
+            Minha Casa, Minha Vida e SBPE: parcela, imóvel máximo pela renda e evolução de obra, prontos para enviar ao
+            cliente.
           </p>
           <div className="cota-linha mt-5" aria-hidden />
         </div>
@@ -78,59 +92,97 @@ export default function App() {
         <div className="lg:sticky lg:top-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
           <Formulario
             valores={valores}
+            opcoes={opcoes}
             erros={erros}
             alterar={alterar}
+            alterarOpcao={alterarOpcao}
+            usarTaxaAutomatica={usarTaxaAutomatica}
             formatar={formatar}
             reiniciar={reiniciar}
-            resultado={resultado}
+            enquadramento={enquadramento}
+            simulacao={simulacao}
           />
         </div>
 
-        {resultado && detalhe ? (
+        {simulacao && resultado && detalhe ? (
           <div id="resultado" className="min-w-0 scroll-mt-4 space-y-10 lg:col-start-2 lg:row-start-2">
-            <BarraResultado resultado={resultado} alvoId="resultado" />
-            <ResumoComparacao resultado={resultado} />
+            <BarraResultado resultado={resultado} sistemas={sistemasVisiveis} reprovado={simulacao.reprovado} alvoId="resultado" />
 
-            {resultado.obra && (
-              <Painel titulo={`Durante a obra: ${resultado.obra.resumo.meses} meses até as chaves`}>
-                <PainelObra obra={resultado.obra} resultado={resultado} />
-              </Painel>
-            )}
-
-            <Painel titulo="Até quanto esse cliente pode comprar?">
-              <PainelCapacidade capacidade={resultado.capacidade} entrada={resultado.entrada} cota={resultado.cotaFinanciamento} />
-            </Painel>
-
-            {resultado.amortizacaoExtra && (
-              <Painel titulo="Amortização extra: reduzir prazo ou parcela?">
-                <PainelAmortizacaoExtra
-                  comparacao={resultado.amortizacaoExtra}
-                  prazoOriginal={resultado.sac.parcelas.length}
+            {simulacao.reprovado && simulacao.saidas ? (
+              <PainelReprovado
+                resultado={resultado}
+                enquadramento={simulacao.enquadramento}
+                sistema={simulacao.sistema}
+                outroSistema={simulacao.outroSistema}
+                saidas={simulacao.saidas}
+                simularPelaRenda={() => alterarOpcao('modo', 'renda')}
+                escolherSistema={escolherSistema}
+              />
+            ) : (
+              <>
+                <ResultadoPrincipal
+                  resultado={resultado}
+                  enquadramento={simulacao.enquadramento}
+                  sistema={simulacao.sistema}
+                  outroSistema={simulacao.outroSistema}
+                  comparar={opcoes.comparar}
+                  valorImovel={simulacao.entrada.valorImovel}
+                  imovelPelaRenda={simulacao.imovelPelaRenda}
+                  escolherSistema={escolherSistema}
+                  alternarComparar={() => alterarOpcao('comparar', !opcoes.comparar)}
                 />
-              </Painel>
+
+                {resultado.obra && (
+                  <Painel titulo={`Durante a obra: ${resultado.obra.resumo.meses} meses até as chaves`}>
+                    <PainelObra obra={resultado.obra} resultado={resultado} sistemas={sistemasVisiveis} />
+                  </Painel>
+                )}
+
+                {opcoes.modo === 'imovel' && (
+                  <Painel titulo="Até quanto esse cliente pode comprar?">
+                    <PainelCapacidade
+                      capacidade={resultado.capacidade}
+                      sistemas={sistemasVisiveis}
+                      entrada={resultado.entrada}
+                      cota={resultado.cotaFinanciamento}
+                      limiteRenda={resultado.limiteRenda}
+                    />
+                  </Painel>
+                )}
+
+                {resultado.amortizacaoExtra && (
+                  <Painel titulo="Amortização extra: reduzir prazo ou parcela?">
+                    <PainelAmortizacaoExtra
+                      comparacao={resultado.amortizacaoExtra}
+                      prazoOriginal={detalhe.parcelas.length}
+                      sistemas={sistemasVisiveis}
+                    />
+                  </Painel>
+                )}
+
+                <Painel titulo="Saldo devedor ao longo do tempo">
+                  <Suspense fallback={<CarregandoGrafico />}>
+                    <GraficoSaldo resultado={resultado} />
+                  </Suspense>
+                </Painel>
+
+                <Painel
+                  titulo="Composição da parcela"
+                  acao={<SeletorSistema valor={sistema} aoAlterar={setSistemaDetalhe} rotulo="Sistema exibido" ordem={ordem} />}
+                >
+                  <Suspense fallback={<CarregandoGrafico />}>
+                    <GraficoComposicao parcelas={detalhe.parcelas} />
+                  </Suspense>
+                </Painel>
+
+                <Painel
+                  titulo="Tabela de amortização"
+                  acao={<SeletorSistema valor={sistema} aoAlterar={setSistemaDetalhe} rotulo="Sistema da tabela" ordem={ordem} />}
+                >
+                  <TabelaAmortizacao parcelas={detalhe.parcelas} sistema={sistema} />
+                </Painel>
+              </>
             )}
-
-            <Painel titulo="Saldo devedor ao longo do tempo">
-              <Suspense fallback={<CarregandoGrafico />}>
-                <GraficoSaldo resultado={resultado} />
-              </Suspense>
-            </Painel>
-
-            <Painel
-              titulo="Composição da parcela"
-              acao={<SeletorSistema valor={sistema} aoAlterar={setSistema} rotulo="Sistema exibido" />}
-            >
-              <Suspense fallback={<CarregandoGrafico />}>
-                <GraficoComposicao parcelas={detalhe.parcelas} />
-              </Suspense>
-            </Painel>
-
-            <Painel
-              titulo="Tabela de amortização"
-              acao={<SeletorSistema valor={sistema} aoAlterar={setSistema} rotulo="Sistema da tabela" />}
-            >
-              <TabelaAmortizacao parcelas={detalhe.parcelas} sistema={sistema} />
-            </Painel>
           </div>
         ) : (
           <div className="grade-planta flex min-h-64 items-center lg:col-start-2 lg:row-start-2 justify-center border-2 border-dashed border-linha p-8 text-center text-tinta-suave">

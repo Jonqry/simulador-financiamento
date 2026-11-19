@@ -37,14 +37,15 @@ function ConteudoModo({ dados, prazoOriginal }: { dados: ResumoExtra; prazoOrigi
 interface PainelAmortizacaoExtraProps {
   comparacao: ComparacaoExtra
   prazoOriginal: number
+  /** Sistemas mostrados, o do destaque primeiro. */
+  sistemas: Sistema[]
 }
 
 /**
- * Reduzir prazo × reduzir parcela, nos dois sistemas. A tabela 2×2 deixa a
+ * Reduzir prazo × reduzir parcela, no sistema em destaque (e no outro, se comparando). A tabela 2×2 deixa a
  * resposta visível de cara: reduzir o prazo quase sempre economiza mais.
  */
-export function PainelAmortizacaoExtra({ comparacao, prazoOriginal }: PainelAmortizacaoExtraProps) {
-  const sistemas: Sistema[] = ['SAC', 'PRICE']
+export function PainelAmortizacaoExtra({ comparacao, prazoOriginal, sistemas }: PainelAmortizacaoExtraProps) {
   const prazoVenceSempre = sistemas.every((s) => comparacao[s].prazo.economia >= comparacao[s].parcela.economia)
 
   return (

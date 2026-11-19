@@ -35,11 +35,28 @@ export interface Capacidade {
   limitadoPor: 'renda' | 'entrada'
 }
 
-function maiorParcelaTotal(sistema: Sistema, principal: Centavos, p: ParametrosCapacidade): Centavos {
+type ParametrosParcela = Pick<ParametrosCapacidade, 'taxaMensal' | 'prazoMeses' | 'encargos'>
+
+function maiorParcelaTotal(sistema: Sistema, principal: Centavos, valorImovel: Centavos, p: ParametrosParcela): Centavos {
   if (principal === 0) return 0
   const tabela = gerarTabela(sistema, { principal, taxaMensal: p.taxaMensal, prazoMeses: p.prazoMeses })
-  const comEncargos = aplicarEncargos(tabela, principal, principal + p.entrada, p.encargos)
+  const comEncargos = aplicarEncargos(tabela, principal, valorImovel, p.encargos)
   return Math.max(...comEncargos.map((parcela) => parcela.total))
+}
+
+/**
+ * Maior valor entre 0 e `alto` para o qual `cabe` é verdadeiro, por busca
+ * binária. Exige que `cabe` seja monotônico (se X cabe, menos que X também) e
+ * que `cabe(0)` seja verdadeiro.
+ */
+function maiorQueCabe(alto: Centavos, cabe: (valor: Centavos) => boolean): Centavos {
+  let baixo = 0
+  while (baixo < alto) {
+    const meio = Math.ceil((baixo + alto) / 2)
+    if (cabe(meio)) baixo = meio
+    else alto = meio - 1
+  }
+  return baixo
 }
 
 /**
@@ -63,7 +80,7 @@ export function capacidadeDeCompra(sistema: Sistema, p: ParametrosCapacidade): C
   }
 
   const parcelaMaxima = Math.floor(p.rendaMensal * limiteRenda)
-  const cabe = (principal: Centavos) => maiorParcelaTotal(sistema, principal, p) <= parcelaMaxima
+  const cabe = (principal: Centavos) => maiorParcelaTotal(sistema, principal, principal + p.entrada, p) <= parcelaMaxima
 
   // Pela cota: financiamento <= cota × (financiamento + entrada).
   const tetoPelaEntrada = Math.floor((cota * p.entrada) / (1 - cota))
@@ -77,22 +94,41 @@ export function capacidadeDeCompra(sistema: Sistema, p: ParametrosCapacidade): C
     financiamento = tetoPelaEntrada
     limitadoPor = 'entrada'
   } else {
-    // Invariante: cabe(baixo) é sempre verdadeiro (financiar 0 sempre cabe).
-    let baixo = 0
-    let alto = Math.min(tetoPelaEntrada, tetoPelaRenda)
-    while (baixo < alto) {
-      const meio = Math.ceil((baixo + alto) / 2)
-      if (cabe(meio)) baixo = meio
-      else alto = meio - 1
-    }
-    financiamento = baixo
+    // Financiar 0 sempre cabe, então a busca binária vale.
+    financiamento = maiorQueCabe(Math.min(tetoPelaEntrada, tetoPelaRenda), cabe)
     limitadoPor = 'renda'
   }
 
   return {
     valorMaximoImovel: financiamento + p.entrada,
     financiamentoMaximo: financiamento,
-    maiorParcela: maiorParcelaTotal(sistema, financiamento, p),
+    maiorParcela: maiorParcelaTotal(sistema, financiamento, financiamento + p.entrada, p),
     limitadoPor,
   }
+}
+
+export interface ParametrosEntradaNecessaria extends ParametrosParcela {
+  valorImovel: Centavos
+  rendaMensal: Centavos
+  /** Fração máxima da renda para a parcela. Padrão: 30%. */
+  limiteRenda?: Taxa
+  /** Fração máxima do imóvel financiada. Padrão: 80%. */
+  cota?: Taxa
+}
+
+/**
+ * Entrada mínima (recursos + FGTS + subsídio) para comprar ESTE imóvel: a
+ * maior parcela precisa caber na renda e o financiamento, na cota. É o
+ * "quanto falta de entrada" quando a simulação não passa pela renda.
+ *
+ * Diferente de `capacidadeDeCompra`, aqui o imóvel é fixo: o DFI não muda
+ * quando a entrada muda, só o valor financiado.
+ */
+export function entradaNecessaria(sistema: Sistema, p: ParametrosEntradaNecessaria): Centavos {
+  const limiteRenda = p.limiteRenda ?? LIMITE_COMPROMETIMENTO_PADRAO
+  const cota = p.cota ?? COTA_FINANCIAMENTO_PADRAO
+  const parcelaMaxima = Math.floor(p.rendaMensal * limiteRenda)
+  const cabe = (principal: Centavos) => maiorParcelaTotal(sistema, principal, p.valorImovel, p) <= parcelaMaxima
+  const alto = Math.min(Math.floor(p.valorImovel * cota), parcelaMaxima * p.prazoMeses)
+  return p.valorImovel - maiorQueCabe(alto, cabe)
 }

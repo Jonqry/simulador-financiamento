@@ -4,13 +4,15 @@ interface SeletorSistemaProps {
   valor: Sistema
   aoAlterar: (sistema: Sistema) => void
   rotulo: string
+  /** Ordem dos botões: o sistema em destaque primeiro. */
+  ordem: readonly Sistema[]
 }
 
-/** Controle segmentado SAC | PRICE. */
-export function SeletorSistema({ valor, aoAlterar, rotulo }: SeletorSistemaProps) {
+/** Controle segmentado entre os dois sistemas. */
+export function SeletorSistema({ valor, aoAlterar, rotulo, ordem }: SeletorSistemaProps) {
   return (
     <div role="group" aria-label={rotulo} className="inline-flex rounded-xs border-2 border-tinta bg-branco">
-      {(['SAC', 'PRICE'] as const).map((sistema) => (
+      {ordem.map((sistema) => (
         <button
           key={sistema}
           type="button"

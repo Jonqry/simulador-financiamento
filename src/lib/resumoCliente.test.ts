@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { simular, type EntradaSimulacao } from './financiamento'
 import { gerarResumoCliente, type DadosResumo } from './resumoCliente'
 
-const normalizar = (s: string) => s.replace(/ /g, ' ')
+const normalizar = (s: string) => s.replace(/\u00a0/g, ' ')
 
 const ENTRADA: EntradaSimulacao = {
   valorImovel: 400_000_00,
@@ -14,11 +14,19 @@ const ENTRADA: EntradaSimulacao = {
   dfiMensal: 0.0001,
   taxaAdministracao: 25_00,
 }
-const DADOS: DadosResumo = { valorImovel: 400_000_00, entrada: 80_000_00, taxaAnual: 0.1149, prazoMeses: 360, temEncargos: true }
+const DADOS: DadosResumo = {
+  valorImovel: 400_000_00,
+  entrada: 80_000_00,
+  taxaAnual: 0.1149,
+  prazoMeses: 360,
+  temEncargos: true,
+  sistema: 'SAC',
+  comparar: true,
+}
 const LINK = 'https://exemplo.app/?valor=400000'
 
 describe('gerarResumoCliente', () => {
-  it('monta o texto completo para WhatsApp', () => {
+  it('monta o texto completo para WhatsApp, comparando os dois sistemas', () => {
     expect(normalizar(gerarResumoCliente(DADOS, simular(ENTRADA), LINK))).toBe(
       [
         '*Simulação de financiamento imobiliário*',
@@ -42,11 +50,41 @@ describe('gerarResumoCliente', () => {
     )
   })
 
+  it('sem comparar, mostra só o sistema em destaque, com o programa no topo', () => {
+    const texto = normalizar(
+      gerarResumoCliente({ ...DADOS, sistema: 'PRICE', comparar: false, programa: 'Minha Casa, Minha Vida · Faixa 3' }, simular(ENTRADA), LINK),
+    )
+    expect(texto.split('\n').slice(0, 8)).toEqual([
+      '*Simulação de financiamento imobiliário*',
+      'Minha Casa, Minha Vida · Faixa 3',
+      'Imóvel: R$ 400.000,00 · Entrada: R$ 80.000,00',
+      'Financiado: R$ 320.000,00 em 360 meses (30 anos), juros de 11,49% ao ano',
+      '',
+      '*PRICE* (parcelas fixas)',
+      'Parcela: R$ 3.174,53',
+      'Total pago: R$ 1.135.201,66',
+    ])
+    expect(texto).not.toContain('*SAC*')
+    expect(texto).not.toContain('No SAC o total fica')
+  })
+
   it('não inclui a renda do cliente', () => {
     expect(normalizar(gerarResumoCliente(DADOS, simular(ENTRADA), LINK))).not.toContain('15.000')
   })
 
-  it('inclui a economia com amortização extra quando houver', () => {
+  it.each([
+    ['SAC', 'no SAC'],
+    ['PRICE', 'na PRICE'],
+  ] as const)('inclui a economia com amortização extra no sistema em destaque (%s)', (sistema, onde) => {
+    const r = simular({ ...ENTRADA, extraValor: 20_000_00, extraMes: 24, extraIntervalo: 24 })
+    const texto = normalizar(gerarResumoCliente({ ...DADOS, sistema, descricaoExtra: 'R$ 20.000,00 a cada 2 anos' }, r, LINK))
+    const economia = r.amortizacaoExtra![sistema].prazo.economia
+    expect(texto).toContain(`Usando R$ 20.000,00 a cada 2 anos para reduzir o prazo, a economia é de`)
+    expect(texto).toContain(`${onde}.`)
+    expect(economia).toBeGreaterThan(0)
+  })
+
+  it('a economia com extra no SAC bate com o valor conferido', () => {
     const r = simular({ ...ENTRADA, extraValor: 20_000_00, extraMes: 24, extraIntervalo: 24 })
     const texto = normalizar(gerarResumoCliente({ ...DADOS, descricaoExtra: 'R$ 20.000,00 a cada 2 anos' }, r, LINK))
     expect(texto).toContain('Usando R$ 20.000,00 a cada 2 anos para reduzir o prazo, a economia é de R$ 254.700,79 no SAC.')

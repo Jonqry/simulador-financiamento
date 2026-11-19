@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { formatarBRL, type ResultadoObra, type ResultadoSimulacao } from '../lib/financiamento'
+import { formatarBRL, type ResultadoObra, type ResultadoSimulacao, type Sistema } from '../lib/financiamento'
 
 const GraficoObra = lazy(() => import('./graficos/Graficos').then((m) => ({ default: m.GraficoObra })))
 
@@ -16,14 +16,19 @@ function Indicador({ rotulo, valor, detalhe }: { rotulo: string; valor: string; 
 interface PainelObraProps {
   obra: ResultadoObra
   resultado: ResultadoSimulacao
+  /** Sistemas mostrados, o do destaque primeiro. */
+  sistemas: Sistema[]
 }
+
+const no = (s: Sistema) => (s === 'SAC' ? 'no SAC' : 'na PRICE')
+const juntar = (partes: string[], conector: string) => partes.join(` ${conector} `)
 
 /**
  * Fase de obra (imóvel na planta): o que o cliente paga até as chaves e o que
  * muda depois. É a parte que mais surpreende quem compra na planta, porque o
  * encargo cresce todo mês e não abate a dívida.
  */
-export function PainelObra({ obra, resultado }: PainelObraProps) {
+export function PainelObra({ obra, resultado, sistemas }: PainelObraProps) {
   const { resumo, parcelas, custoTotal } = obra
   const percentualInicial = parcelas[0]!.percentualObra
 
@@ -51,13 +56,17 @@ export function PainelObra({ obra, resultado }: PainelObraProps) {
         <p>
           <strong>Nessa fase a dívida não diminui:</strong> paga-se juros sobre o valor já repassado à construtora, mais
           seguros e taxa. A amortização começa depois das chaves, com a 1ª parcela de{' '}
-          <strong className="tabular-nums">{formatarBRL(resultado.sac.custos.primeiraParcela)}</strong> no SAC ou{' '}
-          <strong className="tabular-nums">{formatarBRL(resultado.price.custos.primeiraParcela)}</strong> na PRICE.
+          <strong className="tabular-nums">
+            {juntar(
+              sistemas.map((s) => `${formatarBRL((s === 'SAC' ? resultado.sac : resultado.price).custos.primeiraParcela)} ${no(s)}`),
+              'ou',
+            )}
+          </strong>
+          .
         </p>
         <p className="mt-1">
           Custo total (obra + financiamento):{' '}
-          <strong className="tabular-nums">{formatarBRL(custoTotal.SAC)}</strong> no SAC e{' '}
-          <strong className="tabular-nums">{formatarBRL(custoTotal.PRICE)}</strong> na PRICE.
+          <strong className="tabular-nums">{juntar(sistemas.map((s) => `${formatarBRL(custoTotal[s])} ${no(s)}`), 'e')}</strong>.
         </p>
       </div>
       <p className="estreito text-sm text-tinta-suave">

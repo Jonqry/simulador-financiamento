@@ -1,11 +1,13 @@
 # Simulador de Financiamento Imobiliário
 
-Simulador que compara os sistemas **SAC** e **PRICE** lado a lado, com tabela de
-amortização completa, gráficos e alerta de comprometimento de renda.
+Simulador de financiamento para o dia a dia do corretor, com foco no **Minha
+Casa, Minha Vida**: enquadra o cliente na faixa pela renda e pelo valor do
+imóvel, aplica a taxa sozinha, calcula até quanto ele pode comprar e **reprova**
+a simulação quando a parcela não cabe na renda, mostrando o que resolveria.
 
 Projeto de portfólio feito por um corretor de imóveis que estuda Sistemas para
-Internet: a ideia é responder com números a pergunta que todo cliente faz —
-*"qual sistema vale mais a pena para mim?"*
+Internet: a ideia é responder com números as perguntas que todo cliente faz —
+*"quanto fica a parcela?"* e *"até quanto eu consigo comprar?"*
 
 ![Tela do simulador comparando SAC e PRICE](docs/screenshot.png)
 
@@ -13,6 +15,13 @@ Internet: a ideia é responder com números a pergunta que todo cliente faz —
 
 ## Funcionalidades
 
+- [x] Enquadramento MCMV/SBPE pela renda **e** pelo valor do imóvel: passou do teto da faixa, sobe de faixa (ex.: R$ 400.000 é Faixa 3; R$ 400.001, Faixa 4)
+- [x] Taxa automática pela faixa, região e FGTS, com taxa manual (a da proposta do banco) por cima
+- [x] PRICE em destaque no MCMV e SAC no SBPE; o outro sistema aparece ao comparar
+- [x] Reprovação pela renda: o resultado vira "Não aprovado" com o imóvel máximo, a entrada e a renda que resolveriam, e o envio ao cliente fica bloqueado
+- [x] Modo "Quanto posso comprar": imóvel máximo pela renda, já na faixa certa do MCMV
+- [x] Entrada com FGTS e subsídio, ou em percentual do imóvel ("20%")
+- [x] Prazo em meses ou anos, taxa efetiva ou nominal e limite de renda editável
 - [x] Cálculo SAC e PRICE com arredondamento ao centavo
 - [x] Conversão de taxa anual efetiva/nominal → mensal
 - [x] Comparação de juros totais e diferença da 1ª parcela
@@ -66,8 +75,9 @@ src/
 │   │   ├── obra.ts          # fase de obra (imóvel na planta)
 │   │   ├── renda.ts         # comprometimento de renda
 │   │   └── simulacao.ts     # simular(): orquestra tudo para a UI
-│   ├── formulario/          # texto digitado → números; estado ↔ URL
-│   ├── taxasReferencia.ts   # tabela MCMV e taxas de mercado (com fonte e data)
+│   ├── formulario/          # texto digitado → números; estado ↔ URL; montar a simulação da tela
+│   ├── taxasReferencia.ts   # tabela MCMV, tetos e enquadramento (com fonte e data)
+│   ├── imovelPelaRenda.ts   # imóvel máximo pela renda, faixa por faixa
 │   ├── resumoCliente.ts     # texto do resumo para WhatsApp
 │   └── graficos.ts          # dados prontos para o Recharts
 ├── hooks/useSimulacao.ts    # estado do formulário sincronizado com a URL

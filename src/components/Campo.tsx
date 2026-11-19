@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
 
 interface CampoProps {
   rotulo: string
@@ -8,8 +8,9 @@ interface CampoProps {
   aoSair?: () => void
   erro?: string
   prefixo?: string
-  sufixo?: string
-  dica?: string
+  /** Texto ou um controle (ex.: seletor de unidade) dentro da caixa, à direita. */
+  sufixo?: ReactNode
+  dica?: ReactNode
 }
 
 /**

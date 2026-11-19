@@ -1,4 +1,4 @@
-import { formatarBRL, formatarPercentual, type ResultadoSimulacao } from './financiamento'
+import { formatarBRL, formatarPercentual, type ResultadoSimulacao, type Sistema } from './financiamento'
 
 export interface DadosResumo {
   valorImovel: number
@@ -8,6 +8,12 @@ export interface DadosResumo {
   temEncargos: boolean
   /** Descrição do extra para a frase (ex.: "R$ 20.000,00 a cada 2 anos"). */
   descricaoExtra?: string
+  /** Sistema em destaque: vem primeiro (e sozinho, se não estiver comparando). */
+  sistema: Sistema
+  /** Inclui o outro sistema e a comparação entre os dois. */
+  comparar: boolean
+  /** Programa e faixa (ex.: "Minha Casa, Minha Vida · Faixa 3"). */
+  programa?: string
 }
 
 function prazoEmTexto(meses: number): string {
@@ -22,20 +28,27 @@ function prazoEmTexto(meses: number): string {
  * ser encaminhada, e renda é dado pessoal. Termina com o link, que reabre a
  * simulação completa.
  */
+function blocoSistema(sistema: Sistema, r: ResultadoSimulacao): string[] {
+  if (sistema === 'SAC') {
+    return [
+      '*SAC* (parcelas que diminuem)',
+      `1ª parcela: ${formatarBRL(r.sac.custos.primeiraParcela)} · última: ${formatarBRL(r.sac.custos.ultimaParcela)}`,
+      `Total pago: ${formatarBRL(r.sac.custos.totalPago)}`,
+    ]
+  }
+  return ['*PRICE* (parcelas fixas)', `Parcela: ${formatarBRL(r.price.custos.primeiraParcela)}`, `Total pago: ${formatarBRL(r.price.custos.totalPago)}`]
+}
+
 export function gerarResumoCliente(dados: DadosResumo, r: ResultadoSimulacao, link: string): string {
-  const { sac, price } = r
+  const outro: Sistema = dados.sistema === 'SAC' ? 'PRICE' : 'SAC'
   const linhas = [
     '*Simulação de financiamento imobiliário*',
+    ...(dados.programa ? [dados.programa] : []),
     `Imóvel: ${formatarBRL(dados.valorImovel)} · Entrada: ${formatarBRL(dados.entrada)}`,
     `Financiado: ${formatarBRL(r.valorFinanciado)} em ${prazoEmTexto(dados.prazoMeses)}, juros de ${formatarPercentual(dados.taxaAnual)} ao ano`,
     '',
-    '*SAC* (parcelas que diminuem)',
-    `1ª parcela: ${formatarBRL(sac.custos.primeiraParcela)} · última: ${formatarBRL(sac.custos.ultimaParcela)}`,
-    `Total pago: ${formatarBRL(sac.custos.totalPago)}`,
-    '',
-    '*PRICE* (parcelas fixas)',
-    `Parcela: ${formatarBRL(price.custos.primeiraParcela)}`,
-    `Total pago: ${formatarBRL(price.custos.totalPago)}`,
+    ...blocoSistema(dados.sistema, r),
+    ...(dados.comparar ? ['', ...blocoSistema(outro, r)] : []),
   ]
 
   if (r.obra) {
@@ -47,14 +60,14 @@ export function gerarResumoCliente(dados: DadosResumo, r: ResultadoSimulacao, li
     )
   }
 
-  if (r.comparacao.economiaTotalSac > 0) {
+  if (dados.comparar && r.comparacao.economiaTotalSac > 0) {
     linhas.push('', `No SAC o total fica ${formatarBRL(r.comparacao.economiaTotalSac)} menor, mas a 1ª parcela é mais alta.`)
   }
 
   if (r.amortizacaoExtra && dados.descricaoExtra) {
     linhas.push(
       '',
-      `Usando ${dados.descricaoExtra} para reduzir o prazo, a economia é de ${formatarBRL(r.amortizacaoExtra.SAC.prazo.economia)} no SAC.`,
+      `Usando ${dados.descricaoExtra} para reduzir o prazo, a economia é de ${formatarBRL(r.amortizacaoExtra[dados.sistema].prazo.economia)} ${dados.sistema === 'SAC' ? 'no SAC' : 'na PRICE'}.`,
     )
   }
 

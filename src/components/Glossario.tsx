@@ -31,6 +31,24 @@ const TERMOS: { termo: string; explicacao: string }[] = [
     explicacao: 'Quanto da renda bruta mensal vai para a parcela. A referência usual dos bancos é até 30%.',
   },
   {
+    termo: 'Faixas do MCMV',
+    explicacao:
+      'O Minha Casa, Minha Vida divide as famílias em faixas pela renda bruta. Cada faixa tem uma taxa e um teto de valor do imóvel; se o imóvel passa do teto, entra na faixa seguinte, com a taxa dela. Acima de todas, vale o SBPE.',
+  },
+  {
+    termo: 'SBPE',
+    explicacao: 'O financiamento com taxa de mercado, fora do Minha Casa, Minha Vida. Costuma ser feito no SAC.',
+  },
+  {
+    termo: 'Subsídio',
+    explicacao: 'Desconto do governo no MCMV (Faixas 1 e 2), que entra como parte da entrada. O valor sai na análise da Caixa.',
+  },
+  {
+    termo: 'Taxa efetiva e nominal',
+    explicacao:
+      'A nominal é dividida por 12 para virar mensal; a efetiva já considera os juros sobre juros e fica um pouco maior. Use a que aparece na proposta do banco.',
+  },
+  {
     termo: 'Cota de financiamento',
     explicacao: 'A parte do imóvel que o banco financia, geralmente até 80%. O restante é a entrada.',
   },
