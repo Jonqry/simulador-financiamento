@@ -35,6 +35,7 @@ export const PARAMETROS_URL: Record<CampoFormulario, string> = {
   extraMes: 'mesExtra',
   extraIntervalo: 'repetir',
   tetoFaixa12: 'teto12',
+  idade: 'idade',
 }
 
 /**

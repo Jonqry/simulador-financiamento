@@ -704,3 +704,28 @@ manda para o cliente no WhatsApp. O resultado é a "via do cliente".
   `@fontsource-variable/bitter`.
 - Saem o papel quadriculado, a régua de cota e o marca-texto amarelo. O
   `--radius-xs` do tema passou a 6 px, então todos os cantos mudaram de uma vez.
+
+## 34. Conferência com a Simulação Completa da Caixa
+
+Rodei o mesmo cenário na Simulação Completa da Caixa (nov/2026): imóvel de
+R$ 250 mil em Recife, entrada de R$ 50 mil, renda de R$ 6 mil, 420 meses,
+MCMV com recursos do FGTS.
+
+- **Juros e amortização batem centavo por centavo.** PRICE: prestação de
+  R$ 1.443,82 e saldo de R$ 199.916,18 depois da 1ª parcela. SAC (com a
+  entrada que a Caixa sugeriu, R$ 62.545,02): 1ª prestação de R$ 1.721,01.
+  Taxa de 8,16% nominal e 8,47% efetiva, como no simulador.
+- **A diferença estava nos seguros.** O DFI da Caixa é R$ 17,75 num imóvel
+  de R$ 250 mil (0,0071%), e o simulador usava 0,01% (R$ 25). O MIP
+  depende da idade: deu 0,0108% para um comprador jovem, e o simulador
+  usava 0,025%. Os padrões agora são 0,011% e 0,0071%, e a 1ª parcela padrão
+  foi de R$ 1.543,82 para R$ 1.508,57 (Caixa: R$ 1.508,16). A dica do campo
+  avisa que o MIP sobe com a idade. Não há tabela oficial de MIP por idade
+  (varia por seguradora), então o simulador não tenta adivinhar.
+- **Idade e prazo.** A Caixa limita o prazo pela idade: idade + prazo até
+  80 anos e 6 meses. O campo opcional "Idade do comprador mais velho" faz
+  essa conta (em anos completos; o banco usa a data de nascimento, então o
+  limite real pode ser alguns meses menor) e o erro aparece no prazo.
+- **O que ficou de fora:** a Caixa zera os seguros na última parcela e muda
+  o MIP quando o comprador troca de faixa etária durante o contrato. São
+  centavos ou dependem de dados que o simulador não tem.

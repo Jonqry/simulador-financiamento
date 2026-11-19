@@ -16,7 +16,7 @@ describe('montarSimulacao', () => {
     expect(s.enquadramento).toMatchObject({ programa: 'MCMV', faixa: 3 })
     expect(s).toMatchObject({ sistema: 'PRICE', outroSistema: 'SAC', reprovado: false })
     expect(s.saidas).toBeUndefined()
-    expect(s.resultado.price.custos.primeiraParcela).toBe(1_543_82)
+    expect(s.resultado.price.custos.primeiraParcela).toBe(1_508_57) // Caixa: R$ 1.508,16 (MIP pela idade)
   })
 
   it('SBPE abre em SAC', () => {
@@ -42,7 +42,7 @@ describe('montarSimulacao', () => {
 })
 
 describe('montarSimulacao: reprovado pela renda', () => {
-  // No cenário padrão, o SAC usa 31,46% da renda: escolhendo SAC, passa do limite.
+  // No cenário padrão, o SAC usa 31,68% da renda: escolhendo SAC, passa do limite.
   const reprovada = ok(montar({}, { sistema: 'SAC' }))
 
   it('reprova quando a maior parcela do sistema em destaque passa do limite', () => {

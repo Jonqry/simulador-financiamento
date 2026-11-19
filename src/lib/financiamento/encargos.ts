@@ -18,10 +18,13 @@ export interface Encargos {
 export const SEM_ENCARGOS: Encargos = { mipMensal: 0, dfiMensal: 0, taxaAdministracao: 0 }
 
 /**
- * Valores de exemplo para o formulário. Variam por banco, seguradora e idade;
- * o usuário deve trocar pelos do contrato dele.
+ * Valores de exemplo para o formulário, conferidos na Simulação Completa da
+ * Caixa (nov/2026, seguradora Caixa Residencial Habitacional): MIP de
+ * comprador jovem, DFI de R$ 17,75 num imóvel de R$ 250 mil e R$ 25 de taxa.
+ * Variam por banco, seguradora e idade; o usuário deve trocar pelos do
+ * contrato dele.
  */
-export const ENCARGOS_EXEMPLO: Encargos = { mipMensal: 0.00025, dfiMensal: 0.0001, taxaAdministracao: 25_00 }
+export const ENCARGOS_EXEMPLO: Encargos = { mipMensal: 0.00011, dfiMensal: 0.000071, taxaAdministracao: 25_00 }
 
 export interface ValoresEncargos {
   mip: Centavos

@@ -39,7 +39,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeTruthy()
     // Valores conferidos com implementação independente em Python.
     const price = screen.getByRole('heading', { name: 'Tabela PRICE' }).closest('article')!
-    expect(texto(price)).toContain('R$ 1.543,82')
+    expect(texto(price)).toContain('R$ 1.508,57') // a Caixa dá R$ 1.508,16: só o MIP difere (vai pela idade)
     // O SAC só aparece quando o corretor pede a comparação.
     expect(screen.queryByRole('heading', { name: 'SAC', level: 3 })).toBeNull()
   })
@@ -50,7 +50,7 @@ describe('App', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: 'Comparar com SAC' }))
     const sac = screen.getByRole('heading', { name: 'SAC', level: 3 }).closest('article')!
-    expect(texto(sac)).toContain('R$ 1.936,19')
+    expect(texto(sac)).toContain('R$ 1.900,94')
     expect(within(sac).getByText('Acima do limite')).toBeTruthy()
     expect(window.location.search).toContain('comparar=1')
   })
@@ -139,6 +139,21 @@ describe('App', () => {
     expect(document.getElementById(idMensagem)?.textContent).toBe('A entrada precisa ser menor que o valor do imóvel.')
     expect(screen.getByText('Corrija os campos destacados para ver a simulação.')).toBeTruthy()
     expect(screen.getByRole('button', { name: /copiar link/i })).toHaveProperty('disabled', true)
+  })
+
+  it('a idade do comprador limita o prazo (idade + prazo até 80 anos e 6 meses)', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+    await user.type(screen.getByLabelText('Idade do comprador mais velho'), '60')
+
+    const prazo = screen.getByLabelText('Prazo')
+    expect(prazo.getAttribute('aria-invalid')).toBe('true')
+    expect(document.getElementById(prazo.getAttribute('aria-describedby')!)?.textContent).toBe(
+      'Com 60 anos, o prazo vai até 246 meses: idade + prazo até 80 anos e 6 meses.',
+    )
+    expect(screen.getByText('Corrija os campos destacados para ver a simulação.')).toBeTruthy()
+    expect(window.location.search).toContain('idade=60')
   })
 
   it('comparando, alerta quando a parcela do outro sistema passa de 30% da renda', async () => {
@@ -237,7 +252,7 @@ describe('App', () => {
     const cota = screen.getByLabelText('Cota de financiamento')
     await user.clear(cota)
     await user.type(cota, '90')
-    expect(texto(painel())).toContain('R$ 283.846,40') // agora quem limita é a renda
+    expect(texto(painel())).toContain('R$ 289.381,70') // agora quem limita é a renda
     expect(texto(painel())).not.toContain('R$ 250.000,00')
     expect(window.location.search).toContain('cota=90')
   })
@@ -271,9 +286,9 @@ describe('App', () => {
 
     const painel = screen.getByRole('heading', { name: 'Durante a obra: 24 meses até as chaves' }).closest('section')!
     // Taxa automática: 8,16% nominal (Faixa 3).
-    expect(texto(painel)).toContain('R$ 514,13') // 1º mês, obra em 33%
-    expect(texto(painel)).toContain('R$ 1.460,00') // último mês, obra em 100%
-    expect(texto(painel)).toContain('R$ 23.689,52') // total na obra
+    expect(texto(painel)).toContain('R$ 497,66') // 1º mês, obra em 33%
+    expect(texto(painel)).toContain('R$ 1.424,75') // último mês, obra em 100%
+    expect(texto(painel)).toContain('R$ 23.068,89') // total na obra
     expect(texto(painel)).toContain('Nessa fase a dívida não diminui')
     expect(window.location.search).toContain('obra=24&executada=30')
   })
@@ -357,9 +372,9 @@ describe('App', () => {
     render(<App />)
     const painel = screen.getByRole('heading', { name: 'Não aprovado pela renda' }).closest('section')!
     // Valores conferidos pelos testes da lib (montar.test.ts).
-    expect(texto(painel)).toContain('Um imóvel de até R$ 243.329,51')
-    expect(texto(painel)).toContain('Entrada de R$ 56.782,73')
-    expect(texto(painel)).toContain('Renda de R$ 4.134,60')
+    expect(texto(painel)).toContain('Um imóvel de até R$ 249.129,33')
+    expect(texto(painel)).toContain('Entrada de R$ 50.881,19')
+    expect(texto(painel)).toContain('Renda de R$ 4.017,10')
     expect(screen.queryByRole('table')).toBeNull()
     expect(screen.queryByRole('link', { name: 'Enviar resumo no WhatsApp' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Enviar resumo no WhatsApp' })).toHaveProperty('disabled', true)
@@ -367,13 +382,13 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Simular o imóvel máximo' }))
     // O nome acessível mantém o espaço especial do "R$": regex com \s.
-    expect(screen.getByRole('heading', { name: /^Imóvel de até R\$\s243\.329,51$/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /^Imóvel de até R\$\s249\.129,33$/ })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Enviar resumo no WhatsApp' })).toBeTruthy()
   })
 
   it('reprovado no sistema escolhido, mas o outro cabe: oferece trocar', async () => {
     const user = userEvent.setup()
-    // No cenário padrão o SAC usa 32,27% da renda e a PRICE, 25,73%.
+    // No cenário padrão o SAC usa 31,68% da renda e a PRICE, 25,14%.
     window.history.replaceState(null, '', '/?sistema=SAC')
     render(<App />)
     expect(screen.getByRole('heading', { name: 'Não aprovado pela renda' })).toBeTruthy()

@@ -101,8 +101,8 @@ test('imóvel na planta: painel e gráfico da evolução de obra', async ({ page
   await page.goto('/?obra=24&executada=30')
 
   const painel = page.locator('section').filter({ has: page.getByRole('heading', { name: /Durante a obra/ }) })
-  await expect(painel).toContainText('R$ 514,13')
-  await expect(painel).toContainText('R$ 23.689,52')
+  await expect(painel).toContainText('R$ 497,66')
+  await expect(painel).toContainText('R$ 23.068,89')
   await expect(painel.locator('svg.recharts-surface')).toHaveCount(1)
 })
 
@@ -200,11 +200,11 @@ test('digitar a taxa do banco troca para manual, e dá para voltar à automátic
 test('MCMV abre na PRICE; o SAC aparece só ao comparar', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeVisible()
-  await expect(cartao(page, 'Tabela PRICE')).toContainText('R$ 1.543,82')
+  await expect(cartao(page, 'Tabela PRICE')).toContainText('R$ 1.508,57')
   await expect(cartao(page, 'SAC')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Comparar com SAC' }).click()
-  await expect(cartao(page, 'SAC')).toContainText('R$ 1.936,19')
+  await expect(cartao(page, 'SAC')).toContainText('R$ 1.900,94')
   await expect(page).toHaveURL(/comparar=1/)
 })
 
@@ -270,4 +270,15 @@ test('teto das Faixas 1 e 2 da cidade: acima dele, o imóvel entra na Faixa 3', 
   await digitar(page, 'Teto das Faixas 1 e 2 na cidade', '210000')
   await expect(page.getByText('Minha Casa, Minha Vida · Faixa 3').first()).toBeVisible()
   await expect(page.getByText(/Pela renda seria Faixa 1/)).toBeVisible()
+})
+
+test('a idade do comprador limita o prazo: idade + prazo até 80 anos e 6 meses', async ({ page }) => {
+  await page.goto('/')
+  await digitar(page, 'Idade do comprador mais velho', '60')
+  await expect(page.getByText('Com 60 anos, o prazo vai até 246 meses: idade + prazo até 80 anos e 6 meses.')).toBeVisible()
+  await expect(page.getByText('Corrija os campos destacados para ver a simulação.')).toBeVisible()
+
+  await digitar(page, /^Prazo$/, '246')
+  await expect(page.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeVisible()
+  await expect(page).toHaveURL(/idade=60/)
 })

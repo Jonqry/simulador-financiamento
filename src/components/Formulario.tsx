@@ -265,6 +265,12 @@ export function Formulario({
         }
         dica={[dicaPrazo(valores.prazoMeses, opcoes.prazoEmAnos), `Caixa e BB vão até ${opcoes.prazoEmAnos ? '35 anos' : '420 meses'}`].filter(Boolean).join(' · ')}
       />
+      <Campo
+        rotulo="Idade do comprador mais velho"
+        sufixo="anos"
+        {...campo('idade')}
+        dica="Opcional. Idade + prazo não pode passar de 80 anos e 6 meses."
+      />
 
       <Secao titulo="FGTS e subsídio na entrada" resumo={resumoFgts} temErro={Boolean(erros.fgtsEntrada || erros.subsidio)}>
         <p className="estreito text-sm text-tinta-suave">Somam à entrada e abatem o valor financiado.</p>
@@ -302,13 +308,13 @@ export function Formulario({
           rotulo="Seguro MIP (morte e invalidez)"
           sufixo="% ao mês"
           {...campo('mipMensal')}
-          dica="Sobre o saldo devedor: diminui junto com a dívida."
+          dica="Sobre o saldo devedor: diminui junto com a dívida. Sobe com a idade; 0,011% é o de um comprador jovem na Caixa."
         />
         <Campo
           rotulo="Seguro DFI (danos ao imóvel)"
           sufixo="% ao mês"
           {...campo('dfiMensal')}
-          dica="Sobre o valor do imóvel: fica igual o contrato todo."
+          dica="Sobre o valor do imóvel: fica igual o contrato todo. Na Caixa, 0,0071%."
         />
         <Campo rotulo="Taxa de administração" prefixo="R$" sufixo="por mês" {...campo('taxaAdministracao')} />
       </Secao>

@@ -31,8 +31,8 @@ describe('VALORES_PADRAO', () => {
       taxaAnual: '',
       prazoMeses: '420',
       rendaMensal: '6.000',
-      mipMensal: '0,025',
-      dfiMensal: '0,01',
+      mipMensal: '0,011',
+      dfiMensal: '0,0071',
       taxaAdministracao: '25',
       cotaFinanciamento: '80',
       limiteRenda: '30',
@@ -42,6 +42,7 @@ describe('VALORES_PADRAO', () => {
       extraMes: '',
       extraIntervalo: '0',
       tetoFaixa12: '275.000',
+      idade: '',
     })
   })
 })
@@ -56,8 +57,8 @@ describe('converter', () => {
       taxaNominal: true,
       prazoMeses: 420,
       rendaMensal: 6_000_00,
-      mipMensal: expect.closeTo(0.00025, 12),
-      dfiMensal: expect.closeTo(0.0001, 12),
+      mipMensal: expect.closeTo(0.00011, 12),
+      dfiMensal: expect.closeTo(0.000071, 12),
       taxaAdministracao: 25_00,
       cotaFinanciamento: expect.closeTo(0.8, 12),
       limiteRenda: expect.closeTo(0.3, 12),
@@ -209,6 +210,38 @@ describe('converter: prazo em anos', () => {
   })
 })
 
+describe('converter: idade do comprador mais velho', () => {
+  it('vazia não limita nada', () => {
+    expect(conv({ idade: '' }).ok).toBe(true)
+  })
+
+  it('idade + prazo até 80 anos e 6 meses (966 meses)', () => {
+    expect(conv({ idade: '45' }).ok).toBe(true) // 966 - 540 = 426: os 420 meses cabem
+    expect(conv({ idade: '46', prazoMeses: '414' }).ok).toBe(true) // 966 - 552 = 414, na borda
+    expect(conv({ idade: '46' })).toMatchObject({
+      ok: false,
+      erros: { prazoMeses: 'Com 46 anos, o prazo vai até 414 meses: idade + prazo até 80 anos e 6 meses.' },
+    })
+  })
+
+  it('vale também com o prazo em anos', () => {
+    expect(conv({ idade: '60', prazoMeses: '20,5' }, { prazoEmAnos: true }).ok).toBe(true) // 246 meses
+    expect(conv({ idade: '60', prazoMeses: '21' }, { prazoEmAnos: true })).toMatchObject({
+      ok: false,
+      erros: { prazoMeses: 'Com 60 anos, o prazo vai até 246 meses: idade + prazo até 80 anos e 6 meses.' },
+    })
+  })
+
+  it('fora de 18 a 80 anos, ou com fração, é erro na própria idade', () => {
+    for (const idade of ['17', '81', '45,5']) {
+      expect(conv({ idade })).toMatchObject({ ok: false, erros: { idade: 'Use uma idade entre 18 e 80 anos.' } })
+    }
+    expect(conv({ idade: 'abc' })).toMatchObject({ ok: false, erros: { idade: 'Digite um número válido.' } })
+    // Prazo inválido: o erro é o de formato, sem conta de limite.
+    expect(conv({ idade: '60', prazoMeses: 'x' })).toMatchObject({ ok: false, erros: { prazoMeses: 'Digite um número válido.' } })
+  })
+})
+
 describe('converter: modo "quanto posso comprar" (pela renda)', () => {
   const RENDA = { modo: 'renda' } as const
 
@@ -218,7 +251,7 @@ describe('converter: modo "quanto posso comprar" (pela renda)', () => {
       rendaMensal: 6_000_00,
       entrada: 50_000_00,
       prazoMeses: 420,
-      encargos: { mipMensal: 0.00025, dfiMensal: 0.0001, taxaAdministracao: 25_00 },
+      encargos: { mipMensal: 0.00011, dfiMensal: 0.000071, taxaAdministracao: 25_00 },
       cota: 0.8,
       limiteRenda: 0.3,
       taxaMensalDe: taxaMensalDeAnualNominal,

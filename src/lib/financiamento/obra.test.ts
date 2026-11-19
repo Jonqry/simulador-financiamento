@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ENCARGOS_EXEMPLO, SEM_ENCARGOS } from './encargos'
+import { SEM_ENCARGOS, type Encargos } from './encargos'
 import { calcularFaseObra, resumirObra, type ParametrosObra } from './obra'
 import { simular, validarSimulacao, type EntradaSimulacao } from './simulacao'
 import { taxaMensalDeAnualEfetiva } from './taxas'
+
+/** Seguros e taxa fixos destes testes (os valores conferidos à mão abaixo usam estes, não os padrões do formulário). */
+const ENCARGOS_EXEMPLO: Encargos = { mipMensal: 0.00025, dfiMensal: 0.0001, taxaAdministracao: 25_00 }
 
 // Cenário MCMV: R$ 200 mil financiados, imóvel de R$ 250 mil, 8,16% a.a.,
 // 24 meses até as chaves, 30% da obra já executada.

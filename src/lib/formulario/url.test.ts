@@ -15,7 +15,7 @@ describe('lerDaUrl', () => {
   it('lê todos os campos e formata em padrão brasileiro', () => {
     expect(
       lerDaUrl(
-        '?valor=550000&entrada=110000.5&fgts=15000&subsidio=5000&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&cota=90&limite=25&obra=24&executada=30&extra=20000&mesExtra=24&repetir=24',
+        '?valor=550000&entrada=110000.5&fgts=15000&subsidio=5000&taxa=10.25&prazo=420&renda=20000&mip=0.03&dfi=0.0075&adm=30&cota=90&limite=25&obra=24&executada=30&extra=20000&mesExtra=24&repetir=24&idade=45',
       ).valores,
     ).toEqual({
       valorImovel: '550.000',
@@ -36,6 +36,7 @@ describe('lerDaUrl', () => {
       extraMes: '24',
       extraIntervalo: '24',
       tetoFaixa12: '275.000',
+      idade: '45',
     })
   })
 
@@ -87,7 +88,7 @@ describe('lerDaUrl', () => {
 describe('paraQueryString', () => {
   it('gera números em formato de máquina com nomes curtos; taxa automática fica de fora', () => {
     expect(paraQueryString(ESTADO_PADRAO)).toBe(
-      'valor=250000&entrada=50000&prazo=420&renda=6000&mip=0.025&dfi=0.01&adm=25&cota=80&limite=30&teto12=275000',
+      'valor=250000&entrada=50000&prazo=420&renda=6000&mip=0.011&dfi=0.0071&adm=25&cota=80&limite=30&teto12=275000',
     )
   })
 
@@ -97,7 +98,7 @@ describe('paraQueryString', () => {
 
   it('omite campos que não são números', () => {
     expect(paraQueryString(comValores({ entrada: 'abc', rendaMensal: '' }))).toBe(
-      'valor=250000&prazo=420&mip=0.025&dfi=0.01&adm=25&cota=80&limite=30&teto12=275000',
+      'valor=250000&prazo=420&mip=0.011&dfi=0.0071&adm=25&cota=80&limite=30&teto12=275000',
     )
   })
 
@@ -122,7 +123,7 @@ describe('paraQueryString', () => {
     [{ valorImovel: '1.234.567,89', taxaAnual: '9,8765' }, { taxaManual: true }],
     [{ prazoMeses: '29,5' }, { prazoEmAnos: true }],
     [{ entrada: '20%' }, {}],
-    [{ fgtsEntrada: '12.000', subsidio: '30.000', limiteRenda: '25', tetoFaixa12: '210.000' }, { cotista: true, temImovel: true }],
+    [{ fgtsEntrada: '12.000', subsidio: '30.000', limiteRenda: '25', tetoFaixa12: '210.000', idade: '52' }, { cotista: true, temImovel: true }],
   ])('ida e volta: ler o que foi escrito devolve o mesmo estado (%o)', (valores, opcoes) => {
     const estado = comValores(valores, opcoes)
     expect(lerDaUrl(`?${paraQueryString(estado)}`)).toEqual(estado)

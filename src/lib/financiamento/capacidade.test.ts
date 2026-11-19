@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { capacidadeDeCompra, entradaNecessaria, type ParametrosCapacidade } from './capacidade'
-import { aplicarEncargos, ENCARGOS_EXEMPLO, SEM_ENCARGOS } from './encargos'
+import { aplicarEncargos, SEM_ENCARGOS, type Encargos } from './encargos'
 import { gerarTabela } from './motor'
 import { taxaMensalDeAnualEfetiva } from './taxas'
 import type { Sistema } from './tipos'
+
+/** Seguros e taxa fixos destes testes (os valores conferidos à mão abaixo usam estes, não os padrões do formulário). */
+const ENCARGOS_EXEMPLO: Encargos = { mipMensal: 0.00025, dfiMensal: 0.0001, taxaAdministracao: 25_00 }
 
 // Cenários e resultados conferidos com implementação independente em Python
 // (varredura com refinamento decimal, em vez de busca binária).

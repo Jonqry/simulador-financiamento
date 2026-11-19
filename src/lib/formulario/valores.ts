@@ -25,8 +25,11 @@ import { formatarNumeroBR, parseNumeroBR } from './numero'
  */
 export type ValoresFormulario = Record<CampoFormulario, string>
 
-/** Campos digitados: os da simulação e o teto das Faixas 1 e 2 no município (que só entra no enquadramento). */
-export type CampoFormulario = CampoSimulacao | 'tetoFaixa12'
+/**
+ * Campos digitados: os da simulação, o teto das Faixas 1 e 2 no município (que só entra no
+ * enquadramento) e a idade do comprador mais velho (que só limita o prazo).
+ */
+export type CampoFormulario = CampoSimulacao | 'tetoFaixa12' | 'idade'
 
 export type ErrosFormulario = Partial<Record<CampoFormulario, string>>
 
@@ -89,6 +92,7 @@ const CONFIG: Record<CampoFormulario, ConfigCampo> = {
   extraMes: { unidade: 'inteiro', obrigatorio: false, padrao: null },
   extraIntervalo: { unidade: 'inteiro', obrigatorio: false, padrao: 0 },
   tetoFaixa12: { unidade: 'reais', obrigatorio: false, padrao: TETO_IMOVEL_MCMV[1] / 100 },
+  idade: { unidade: 'inteiro', obrigatorio: false, padrao: null },
 }
 
 export const CAMPOS = Object.keys(CONFIG) as readonly CampoFormulario[]
@@ -172,6 +176,9 @@ export function calcularImovelPelaRenda(entrada: EntradaSimulacao, opcoes: Opcoe
   })
 }
 
+/** Idade + prazo não pode passar de 80 anos e 6 meses (966 meses). */
+export const PRAZO_LIMITE_IDADE_MESES = 80 * 12 + 6
+
 /** Imóvel provisório no modo pela renda, só para validar os outros campos antes de calcular o imóvel. */
 const IMOVEL_PROVISORIO = Number.MAX_SAFE_INTEGER
 
@@ -207,7 +214,7 @@ export function converter(valores: ValoresFormulario, opcoes: OpcoesFormulario):
   }
 
   // As taxas das tabelas (MCMV e SBPE) são nominais; a manual segue a escolha do corretor.
-  const { tetoFaixa12, ...daSimulacao } = numeros
+  const { tetoFaixa12, idade, ...daSimulacao } = numeros
   const entrada = { ...daSimulacao, taxaNominal: !opcoes.taxaManual || opcoes.taxaNominal } as EntradaSimulacao
   if (opcoes.prazoEmAnos) entrada.prazoMeses = Math.round(entrada.prazoMeses * 12)
   if (pelaRenda) entrada.valorImovel = IMOVEL_PROVISORIO
@@ -229,6 +236,15 @@ export function converter(valores: ValoresFormulario, opcoes: OpcoesFormulario):
   const tetoGeral = TETO_IMOVEL_MCMV[1]
   if (tetoFaixa12 !== undefined && !errosFormato.tetoFaixa12 && (tetoFaixa12 <= 0 || tetoFaixa12 > tetoGeral)) {
     errosRegra.tetoFaixa12 = `Use um valor de até ${formatarBRL(tetoGeral)}.`
+  }
+  // Idade + prazo até 80 anos e 6 meses (regra das seguradoras). A idade é em anos
+  // completos; o banco usa a data de nascimento, então o limite real pode ser alguns meses menor.
+  if (idade !== undefined && !errosFormato.idade) {
+    if (!Number.isInteger(idade) || idade < 18 || idade > 80) {
+      errosRegra.idade = 'Use uma idade entre 18 e 80 anos.'
+    } else if (Number.isFinite(entrada.prazoMeses) && entrada.prazoMeses > PRAZO_LIMITE_IDADE_MESES - idade * 12) {
+      errosRegra.prazoMeses = `Com ${idade} anos, o prazo vai até ${PRAZO_LIMITE_IDADE_MESES - idade * 12} meses: idade + prazo até 80 anos e 6 meses.`
+    }
   }
   const tetoValido = tetoFaixa12 !== undefined && !errosFormato.tetoFaixa12 && !errosRegra.tetoFaixa12
   const perfil: Perfil = {

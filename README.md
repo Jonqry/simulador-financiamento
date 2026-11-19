@@ -18,6 +18,8 @@ Internet: a ideia é responder com números as perguntas que todo cliente faz �
 - [x] Enquadramento MCMV/SBPE pela renda **e** pelo valor do imóvel: passou do teto da faixa, sobe de faixa (ex.: R$ 400.000 é Faixa 3; R$ 400.001, Faixa 4)
 - [x] Taxa automática pela faixa, região e FGTS, com taxa manual (a da proposta do banco) por cima
 - [x] Cliente com imóvel no nome vai direto para o SBPE; teto das Faixas 1 e 2 ajustável pela cidade
+- [x] Idade do comprador mais velho limita o prazo (idade + prazo até 80 anos e 6 meses)
+- [x] Conferido com a Simulação Completa da Caixa: juros e amortização batem centavo por centavo
 - [x] PRICE em destaque no MCMV e SAC no SBPE; o outro sistema aparece ao comparar
 - [x] Reprovação pela renda: o resultado vira "Não aprovado" com o imóvel máximo, a entrada e a renda que resolveriam, e o envio ao cliente fica bloqueado
 - [x] Modo "Quanto posso comprar": imóvel máximo pela renda, já na faixa certa do MCMV
