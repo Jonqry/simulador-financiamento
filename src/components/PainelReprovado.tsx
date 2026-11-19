@@ -1,6 +1,7 @@
 import { formatarBRL, formatarPercentual, type ResultadoSimulacao, type Sistema } from '../lib/financiamento'
 import type { Saidas } from '../lib/formulario/montar'
 import { descreverPrograma, type Enquadramento } from '../lib/taxasReferencia'
+import { Carimbo } from './Carimbo'
 
 interface PainelReprovadoProps {
   resultado: ResultadoSimulacao
@@ -38,13 +39,15 @@ export function PainelReprovado({
   return (
     <section aria-labelledby="titulo-reprovado" className="space-y-4 border-l-8 border-critico bg-critico/8 p-5">
       <div>
-        <p className="estreito text-sm font-semibold text-tinta-suave">{descreverPrograma(enquadramento)}</p>
-        <h2 id="titulo-reprovado" className="flex items-center gap-3 text-3xl font-extrabold">
-          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center bg-critico text-xl text-branco">
-            ✕
-          </span>
-          Não aprovado pela renda
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="estreito text-sm font-semibold text-tinta-suave">{descreverPrograma(enquadramento)}</p>
+            <h2 id="titulo-reprovado" className="text-3xl font-extrabold">
+              Não aprovado pela renda
+            </h2>
+          </div>
+          <Carimbo cabe={false} />
+        </div>
         <p className="mt-2 max-w-3xl text-lg">
           {sistema === 'SAC' ? 'No SAC' : 'Na PRICE'}, a maior parcela seria de{' '}
           <strong className="tabular-nums">{formatarBRL(maiorParcela)}</strong>, ou{' '}
@@ -56,7 +59,7 @@ export function PainelReprovado({
       <div>
         <h3 className="text-lg font-extrabold">O que resolve</h3>
         <ul className="mt-2 space-y-3">
-          <li className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+          <li className="folha p-3">
             <p>
               <strong>Um imóvel de até {formatarBRL(saidas.imovelMaximo)}</strong> com a mesma renda e entrada.
             </p>
@@ -64,15 +67,15 @@ export function PainelReprovado({
               Simular o imóvel máximo
             </button>
           </li>
-          <li className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+          <li className="folha p-3">
             <strong>Entrada de {formatarBRL(saidas.entradaNecessaria)}</strong> para este imóvel (faltam {formatarBRL(falta)},
             somando recursos próprios, FGTS e subsídio).
           </li>
-          <li className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+          <li className="folha p-3">
             <strong>Renda de {formatarBRL(saidas.rendaNecessaria)}</strong>, somando quem vai compor o financiamento.
           </li>
           {saidas.outroSistemaCabe && (
-            <li className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+            <li className="folha p-3">
               <p>
                 <strong>
                   {outroSistema === 'SAC' ? 'No SAC' : 'Na PRICE'} a parcela cabe:

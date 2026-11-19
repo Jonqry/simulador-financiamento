@@ -19,7 +19,7 @@ const GraficoSaldo = lazy(() => carregarGraficos().then((m) => ({ default: m.Gra
 const GraficoComposicao = lazy(() => carregarGraficos().then((m) => ({ default: m.GraficoComposicao })))
 
 function CarregandoGrafico() {
-  return <div className="grade-planta h-80 animate-pulse bg-piso" aria-label="Carregando gráfico" />
+  return <div className="h-80 animate-pulse rounded-xs bg-piso" aria-label="Carregando gráfico" />
 }
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: ReactNode; children: ReactNode }) {
@@ -54,20 +54,11 @@ export default function App() {
   return (
     <div className="min-h-screen pb-16 lg:pb-0">
       <header>
-        <div className="border-b-2 border-tinta">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <a
-              href="https://joaovictorvarela.vercel.app"
-              className="largo flex items-center gap-2.5 font-extrabold text-tinta no-underline"
-            >
+        <div className="border-b border-linha/40 bg-branco">
+          <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
+            <a href="/" className="largo flex items-center gap-2.5 text-lg font-extrabold text-tinta no-underline">
               <img src="/favicon.svg" alt="" className="size-7 shrink-0" />
-              João Victor Varela
-            </a>
-            <a
-              href="https://joaovictorvarela.vercel.app/projetos"
-              className="estreito text-sm font-medium text-tinta-suave hover:text-tinta"
-            >
-              Ver outros projetos
+              Simulador imobiliário
             </a>
           </div>
         </div>
@@ -78,13 +69,12 @@ export default function App() {
           formulário só apareciam depois de rolar a página. A 2ª linha (1fr) absorve a sobra de
           altura do formulário: sem isso, com um resultado curto (reprovado), o título esticava. */}
       <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[22rem_1fr] lg:grid-rows-[auto_1fr]">
-        <div className="grade-planta -mx-4 px-4 pt-2 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:px-0">
+        <div className="-mx-4 px-4 pt-2 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:px-0">
           <h1 className="text-3xl font-extrabold sm:text-4xl">Simulador de financiamento imobiliário</h1>
           <p className="mt-3 max-w-2xl text-tinta-suave sm:text-lg">
             Minha Casa, Minha Vida e SBPE: parcela, imóvel máximo pela renda e evolução de obra, prontos para enviar ao
             cliente.
           </p>
-          <div className="cota-linha mt-5" aria-hidden />
         </div>
 
         {/* No computador o formulário acompanha a rolagem. Como ele pode ser mais alto que a
@@ -185,7 +175,7 @@ export default function App() {
             )}
           </div>
         ) : (
-          <div className="grade-planta flex min-h-64 items-center lg:col-start-2 lg:row-start-2 justify-center border-2 border-dashed border-linha p-8 text-center text-tinta-suave">
+          <div className="flex min-h-64 items-center lg:col-start-2 lg:row-start-2 justify-center border-2 border-dashed border-linha p-8 text-center text-tinta-suave">
             Corrija os campos destacados para ver a simulação.
           </div>
         )}
@@ -205,7 +195,7 @@ export default function App() {
         </details>
       </section>
 
-      <footer className="border-t-2 border-tinta">
+      <footer className="border-t border-linha/40">
         <div className="mx-auto max-w-6xl px-4 pt-6 pb-8 text-xs text-tinta-suave">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm">
@@ -236,6 +226,9 @@ export default function App() {
                 rel="noreferrer"
               >
                 Código
+              </a>
+              <a className="link-texto" href="https://joaovictorvarela.vercel.app/projetos">
+                Outros projetos
               </a>
             </nav>
           </div>

@@ -680,3 +680,27 @@ de renda editável. Tudo opcional, com o padrão de antes.
 - **Teto das Faixas 1 e 2 por município:** campo com o teto da cidade (até
   R$ 275 mil). Acima dele, o imóvel sobe para a Faixa 3, como antes.
 - **SBPE:** referência de 11,39% (balcão da Caixa, informado pelo corretor).
+
+## 33. Identidade própria: a via do cliente
+
+A identidade da seção 31 era a do portfólio, e cada projeto precisa ter a sua
+cara (a autoria fica só na assinatura do rodapé). A ideia agora vem de como o
+simulador é usado: o corretor mostra a simulação no celular, no plantão, e
+manda para o cliente no WhatsApp. O resultado é a "via do cliente".
+
+- **Folhas brancas sobre azul-claro de formulário** (`.folha`), com um picote
+  tracejado entre o cabeçalho do cartão e os valores.
+- **Azul-carbono** (`#2e43b8`) nos botões, links, foco e na PRICE.
+  O SAC virou vinho (`#a3407f`) e os juros, âmbar. Conferi como na seção 16,
+  com simulação de daltonismo, mas medindo o ΔE em CIELAB: o par mais próximo
+  entre as séries fica em 27 (protanopia).
+- **O carimbo** é o único elemento chamativo: "Cabe na renda" (verde) ou
+  "Não cabe na renda" (vermelho), batendo de novo quando o veredito muda. É
+  decorativo (`aria-hidden`): o título e o alerta já dizem o mesmo em texto,
+  então nenhum teste mudou.
+- **Bitter** (serifa de máquina de escrever, legível na tela) nos títulos e
+  nos números de destaque; o resto na fonte do próprio aparelho, que carrega
+  na hora e parece do celular. Sai o `@fontsource-variable/archivo`, entra o
+  `@fontsource-variable/bitter`.
+- Saem o papel quadriculado, a régua de cota e o marca-texto amarelo. O
+  `--radius-xs` do tema passou a 6 px, então todos os cantos mudaram de uma vez.

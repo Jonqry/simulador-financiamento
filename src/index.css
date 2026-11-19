@@ -1,33 +1,36 @@
 @import "tailwindcss";
 
 /*
- * Identidade: a mesma do portfólio (joaovictorvarela.vercel.app), uma planta
- * baixa de lançamento imobiliário. Paredes em grafite, cotas em cinza, piso
- * claro e o marca-texto amarelo que o corretor usa para destacar o número
- * que importa para o cliente.
+ * Identidade: a via do cliente. A simulação é o papel que o corretor entrega
+ * (ou manda no WhatsApp): folhas brancas sobre o azul-claro de formulário,
+ * tinta azul-carbono nos botões e o carimbo que diz se cabe na renda.
+ * Números e títulos em Bitter (serifa de máquina de escrever, legível na tela);
+ * o resto na fonte do próprio celular, que carrega na hora e parece do aparelho.
  *
  * As cores das séries também estão em src/cores.ts (o Recharts precisa delas
- * em JS). Status (bom/atenção/crítico) é reservado ao alerta de renda e nunca
- * é usado como cor de série.
+ * em JS). Status (bom/atenção/crítico) é reservado à renda e ao carimbo e
+ * nunca é usado como cor de série.
  */
 @theme {
-  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bitter Variable", Georgia, serif;
+  --radius-xs: 6px;
 
-  --color-papel: #f4f6f5;
-  --color-piso: #e4e9e6;
-  --color-tinta: #22292b;
-  --color-tinta-suave: #55636a;
-  --color-linha: #8d9a9e;
-  --color-sol: #f5d547;
-  --color-azul: #1e5a8c;
+  --color-papel: #eef1f7;
+  --color-piso: #e2e6ef;
+  --color-tinta: #1f2433;
+  --color-tinta-suave: #5b6275;
+  --color-linha: #8b93a7;
+  --color-carbono: #2e43b8;
+  --color-realce: #dfe5fb;
   --color-branco: #ffffff;
 
-  --color-sac: #1e5a8c;
-  --color-price: #c4572a;
+  --color-sac: #a3407f;
+  --color-price: #2e43b8;
 
-  --color-bom: #2e7d4f;
-  --color-atencao: #d9a406;
-  --color-critico: #b23a2e;
+  --color-bom: #1f7a4d;
+  --color-atencao: #b7791f;
+  --color-critico: #c0352b;
 }
 
 @layer base {
@@ -37,86 +40,83 @@
     line-height: 1.55;
   }
 
-  /* Títulos largos, como o letreiro de um lançamento */
+  /* Títulos e números de destaque na letra da via */
   h1,
   h2,
+  h3,
   .largo {
-    font-stretch: 118%;
+    font-family: var(--font-display);
     letter-spacing: -0.01em;
-    line-height: 1.1;
+    line-height: 1.15;
   }
 
-  /* Texto estreito, como as legendas escritas dentro da planta */
+  /* Rótulos e legendas: números alinhados, como numa ficha */
   .estreito {
-    font-stretch: 78%;
-    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-tinta);
+    outline: 3px solid var(--color-carbono);
     outline-offset: 2px;
-    box-shadow: 0 0 0 6px var(--color-sol);
   }
 
   ::selection {
-    background: var(--color-sol);
+    background: var(--color-realce);
     color: var(--color-tinta);
   }
 }
 
 @layer components {
-  /* O marca-texto: só no número que o corretor mostra primeiro ao cliente. */
-  .marca-texto {
-    background: linear-gradient(transparent 52%, var(--color-sol) 52%, var(--color-sol) 92%, transparent 92%);
-    padding: 0 0.15em;
+  /* A folha da via: papel branco sobre o fundo azul-claro. */
+  .folha {
+    background: var(--color-branco);
+    border-radius: var(--radius-xs);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-linha) 35%, transparent),
+      0 2px 0 color-mix(in srgb, var(--color-linha) 25%, transparent);
   }
 
-  /* Papel milimetrado do cabeçalho e do estado vazio. */
-  .grade-planta {
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--color-linha) 18%, transparent) 1px, transparent 1px),
-      linear-gradient(90deg, color-mix(in srgb, var(--color-linha) 18%, transparent) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-
-  /* Prancha: seção com parede em cima, sem caixa nem sombra. */
+  /* Seção de resultado: só um fio fino em cima, sem caixa. */
   .bloco {
-    border-top: 3px solid var(--color-tinta);
-    padding-top: 1rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+    padding-top: 1.25rem;
   }
 
-  /* Linha de cota: a régua usada no portfólio, com as marcações nas pontas. */
-  .cota-linha {
-    position: relative;
-    height: 14px;
-    border-bottom: 1.2px solid var(--color-linha);
+  /* O carimbo do veredito. Entra "batendo" quando o resultado muda de lado. */
+  .carimbo {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: 0.3rem 0.55rem;
+    border: 3px solid currentColor;
+    border-radius: 4px;
+    outline: 1px solid currentColor;
+    outline-offset: 3px;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+    opacity: 0.9;
+    transform: rotate(-6deg);
+    animation: carimbar 0.3s cubic-bezier(0.3, 1.4, 0.6, 1);
   }
-  .cota-linha::before,
-  .cota-linha::after {
-    content: "";
-    position: absolute;
-    bottom: -6px;
-    width: 1.2px;
-    height: 12px;
-    background: var(--color-linha);
-  }
-  .cota-linha::before {
-    left: 0;
-  }
-  .cota-linha::after {
-    right: 0;
+  @keyframes carimbar {
+    from {
+      opacity: 0;
+      transform: rotate(-6deg) scale(1.6);
+    }
   }
 
-  /* Botões iguais aos do portfólio: grafite que vira marca-texto no hover. */
   .botao {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border: 2px solid var(--color-tinta);
-    border-radius: 2px;
+    border: 2px solid var(--color-carbono);
+    border-radius: var(--radius-xs);
     font-weight: 600;
-    font-stretch: 90%;
     text-decoration: none;
     transition:
       background-color 0.15s,
@@ -127,50 +127,44 @@
   }
   .botao:disabled {
     cursor: not-allowed;
-    border-color: var(--color-linha);
+    border-color: var(--color-piso);
     color: var(--color-tinta-suave);
     background: var(--color-piso);
   }
   .botao-principal {
-    background: var(--color-tinta);
+    background: var(--color-carbono);
     color: var(--color-branco);
   }
   .botao-principal:hover:not(:disabled) {
-    background: var(--color-sol);
-    color: var(--color-tinta);
+    background: color-mix(in srgb, var(--color-carbono) 82%, black);
   }
   .botao-linha {
     background: transparent;
-    color: var(--color-tinta);
+    color: var(--color-carbono);
   }
   .botao-linha:hover:not(:disabled) {
-    background: var(--color-branco);
+    background: var(--color-realce);
   }
 
   .link-texto {
-    color: var(--color-azul);
+    color: var(--color-carbono);
     font-weight: 600;
     text-decoration: underline;
     text-decoration-thickness: 1.5px;
     text-underline-offset: 4px;
   }
   .link-texto:hover {
-    color: var(--color-tinta);
-    background: var(--color-sol);
+    text-decoration-thickness: 3px;
   }
 
-  /* Marcador das séries: quadrado, como os marcos da linha do tempo do portfólio. */
+  /* Marcador das séries: a bolinha da legenda. */
   .marcador {
     display: inline-block;
     flex-shrink: 0;
     width: 0.6rem;
     height: 0.6rem;
+    border-radius: 50%;
   }
-}
-
-/* Eixos dos gráficos com a mesma letra estreita das cotas. */
-.recharts-cartesian-axis-tick text {
-  font-stretch: 78%;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -5,7 +5,7 @@ const GraficoObra = lazy(() => import('./graficos/Graficos').then((m) => ({ defa
 
 function Indicador({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string }) {
   return (
-    <div className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+    <div className="folha p-3">
       <p className="estreito text-sm text-tinta-suave">{rotulo}</p>
       <p className="largo mt-1 text-xl font-extrabold tabular-nums">{valor}</p>
       {detalhe && <p className="estreito text-sm text-tinta-suave">{detalhe}</p>}
@@ -48,11 +48,11 @@ export function PainelObra({ obra, resultado, sistemas }: PainelObraProps) {
         />
       </div>
 
-      <Suspense fallback={<div className="grade-planta h-64 animate-pulse bg-piso" aria-label="Carregando gráfico" />}>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-xs bg-piso" aria-label="Carregando gráfico" />}>
         <GraficoObra parcelas={parcelas} />
       </Suspense>
 
-      <div className="border-l-4 border-sol bg-branco p-3 text-sm">
+      <div className="border-l-4 border-carbono bg-branco p-3 text-sm">
         <p>
           <strong>Nessa fase a dívida não diminui:</strong> paga-se juros sobre o valor já repassado à construtora, mais
           seguros e taxa. A amortização começa depois das chaves, com a 1ª parcela de{' '}

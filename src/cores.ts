@@ -3,24 +3,24 @@
  * PRICE também estão em src/index.css (@theme) para as classes do Tailwind
  * (bg-sac etc.).
  *
- * Mesma família visual do portfólio: azul de planta, terracota, grafite,
- * marca-texto amarelo e cinza de cota. Paleta validada para daltonismo
- * (diferença perceptual ΔE ≥ 8 entre pares vizinhos sob
- * protanopia/deuteranopia/tritanopia). SAC e PRICE nunca mudam de cor entre
- * gráficos: a cor segue o sistema, não a posição.
+ * Mesma família da via do cliente: azul-carbono (PRICE), vinho (SAC), tinta,
+ * âmbar e cinza. Paleta conferida para daltonismo (ΔE em CIELAB ≥ 27 entre
+ * as séries sob protanopia/deuteranopia/tritanopia simuladas). SAC e
+ * PRICE nunca mudam de cor entre gráficos: a cor segue o sistema, não a
+ * posição.
  *
  * Nas áreas empilhadas, `*Contorno` é a linha (e a cor da legenda) e o valor
- * base é o preenchimento: o amarelo puro some sobre o papel claro, então a
- * linha usa um dourado mais escuro.
+ * base é o preenchimento: o âmbar claro some sobre o papel, então a linha usa
+ * um tom mais escuro.
  */
 export const CORES = {
-  sac: '#1e5a8c',
-  price: '#c4572a',
-  amortizacao: '#22292b',
-  juros: '#f5d547',
-  jurosContorno: '#a8840f',
-  encargos: '#b4bfc2',
-  encargosContorno: '#8d9a9e',
-  grade: '#d9e0dc',
-  eixo: '#55636a',
+  sac: '#a3407f',
+  price: '#2e43b8',
+  amortizacao: '#1f2433',
+  juros: '#e9a23b',
+  jurosContorno: '#9a6512',
+  encargos: '#b9c0cf',
+  encargosContorno: '#8b93a7',
+  grade: '#dde2ec',
+  eixo: '#5b6275',
 } as const

@@ -48,7 +48,7 @@ export function GraficoObra({ parcelas }: { parcelas: ParcelaObra[] }) {
                 const ponto = payload?.[0]?.payload as PontoObra | undefined
                 if (!active || !ponto) return null
                 return (
-                  <div className="rounded-xs border-2 border-tinta bg-branco px-3 py-2 text-sm">
+                  <div className="folha px-3 py-2 text-sm">
                     <p className="font-bold">
                       Mês {ponto.mes} · obra em {formatarPercentual(ponto.percentualObra)}
                     </p>

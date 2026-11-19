@@ -53,7 +53,7 @@ export function PainelAmortizacaoExtra({ comparacao, prazoOriginal, sistemas }: 
       {/* Celular: um cartão por sistema, sem rolagem lateral. */}
       <div className="space-y-3 sm:hidden">
         {sistemas.map((sistema) => (
-          <div key={sistema} className="rounded-xs border-[1.5px] border-linha bg-branco p-3">
+          <div key={sistema} className="folha p-3">
             <p className="mb-2 flex items-center gap-1.5 font-bold">
               <span aria-hidden className={`marcador ${sistema === 'SAC' ? 'bg-sac' : 'bg-price'}`} />
               {sistema}
@@ -73,10 +73,10 @@ export function PainelAmortizacaoExtra({ comparacao, prazoOriginal, sistemas }: 
       </div>
 
       {/* Telas maiores: tabela 2×2. */}
-      <div className="hidden overflow-x-auto rounded-xs border-[1.5px] border-linha bg-branco sm:block">
+      <div className="hidden overflow-x-auto folha sm:block">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Economia com amortização extra, por sistema e modo</caption>
-          <thead className="estreito border-b-2 border-tinta bg-piso text-sm text-tinta-suave">
+          <thead className="estreito border-b border-linha/40 bg-piso text-sm text-tinta-suave">
             <tr>
               <th scope="col" className="px-3 py-2 font-semibold">
                 Sistema

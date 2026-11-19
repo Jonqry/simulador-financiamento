@@ -144,7 +144,7 @@ test('rodapé com o autor e links de contato', async ({ page }) => {
 
 test('tem as tags de prévia para WhatsApp/LinkedIn', async ({ page, request }) => {
   await page.goto('/')
-  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /SAC × PRICE/)
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /MCMV e SBPE/)
   const imagem = await page.locator('meta[property="og:image"]').getAttribute('content')
   // A imagem aponta para o domínio de produção; testa que ela existe neste deploy.
   const resposta = await request.get(new URL(imagem!).pathname)

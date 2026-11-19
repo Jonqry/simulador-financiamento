@@ -39,7 +39,7 @@ export function PainelCapacidade({ capacidade, sistemas, entrada, cota, limiteRe
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         {sistemas.map((sistema) => (
-          <div key={sistema} className="rounded-xs border-[1.5px] border-linha bg-branco p-4">
+          <div key={sistema} className="folha p-4">
             <p className="flex items-center gap-1.5 text-sm text-tinta-suave">
               <span aria-hidden className={`marcador ${sistema === 'SAC' ? 'bg-sac' : 'bg-price'}`} />
               {sistema === 'SAC' ? 'No SAC' : 'Na PRICE'}, imóvel de até

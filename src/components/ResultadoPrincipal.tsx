@@ -8,6 +8,7 @@ import {
 import type { ImovelPelaRenda } from '../lib/imovelPelaRenda'
 import { descreverPrograma, type Enquadramento } from '../lib/taxasReferencia'
 import { AlertaRenda } from './AlertaRenda'
+import { Carimbo } from './Carimbo'
 
 const DESCRICAO: Record<Sistema, string> = {
   SAC: 'Parcelas decrescentes',
@@ -23,8 +24,8 @@ function Linha({ rotulo, valor, destaque = false, dica }: { rotulo: string; valo
         {rotulo}
         {dica && <span className="estreito block text-xs text-tinta-suave">{dica}</span>}
       </dt>
-      <dd className={`text-right tabular-nums ${destaque ? 'text-2xl font-bold' : 'font-medium'}`}>
-        {destaque ? <span className="marca-texto">{valor}</span> : valor}
+      <dd className={`text-right tabular-nums ${destaque ? 'largo text-3xl font-extrabold' : 'font-medium'}`}>
+        {valor}
       </dd>
     </div>
   )
@@ -36,11 +37,14 @@ export function CartaoSistema({ sistema, dados }: { sistema: Sistema; dados: Res
   const encargosPrimeira = custos.primeiraParcela - resumo.primeiraPrestacao
 
   return (
-    <article className="flex flex-col gap-4 rounded-xs border-2 border-tinta bg-branco p-5">
-      <header className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b-[1.5px] border-linha pb-3">
-        <span aria-hidden className={`marcador self-center ${sistema === 'SAC' ? 'bg-sac' : 'bg-price'}`} />
-        <h3 className="largo text-lg font-extrabold">{sistema === 'SAC' ? 'SAC' : 'Tabela PRICE'}</h3>
-        <span className="estreito text-sm text-tinta-suave">· {DESCRICAO[sistema]}</span>
+    <article className="folha flex flex-col gap-4 p-5">
+      <header className="flex items-center justify-between gap-3 border-b-2 border-dashed border-linha/50 pb-3">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span aria-hidden className={`marcador self-center ${sistema === 'SAC' ? 'bg-sac' : 'bg-price'}`} />
+          <h3 className="largo text-lg font-extrabold">{sistema === 'SAC' ? 'SAC' : 'Tabela PRICE'}</h3>
+          <span className="estreito text-sm text-tinta-suave">· {DESCRICAO[sistema]}</span>
+        </div>
+        <Carimbo cabe={comprometimento.nivel !== 'acima'} />
       </header>
       <dl className="space-y-2">
         <Linha
@@ -112,7 +116,7 @@ export function ResultadoPrincipal({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div role="group" aria-label="Sistema em destaque" className="inline-flex rounded-xs border-2 border-tinta bg-branco">
+        <div role="group" aria-label="Sistema em destaque" className="inline-flex overflow-hidden rounded-xs border-2 border-carbono bg-branco">
           {([sistema, outroSistema] as const).map((s) => (
             <button
               key={s}
@@ -120,7 +124,7 @@ export function ResultadoPrincipal({
               aria-pressed={s === sistema}
               onClick={() => escolherSistema(s)}
               className={`flex items-center gap-1.5 px-3 py-1 text-sm font-semibold transition ${
-                s === sistema ? 'bg-tinta text-branco' : 'text-tinta-suave hover:bg-sol hover:text-tinta'
+                s === sistema ? 'bg-realce text-carbono' : 'text-tinta-suave hover:bg-realce hover:text-tinta'
               }`}
             >
               <span aria-hidden className={`marcador ${s === 'SAC' ? 'bg-sac' : 'bg-price'}`} />

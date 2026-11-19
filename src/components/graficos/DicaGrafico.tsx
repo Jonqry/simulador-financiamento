@@ -20,7 +20,7 @@ interface DicaGraficoProps {
 export function DicaGrafico({ mes, itens, total }: DicaGraficoProps) {
   if (mes === undefined || itens.length === 0) return null
   return (
-    <div className="rounded-xs border-2 border-tinta bg-branco px-3 py-2 text-sm">
+    <div className="folha px-3 py-2 text-sm">
       <p className="mb-1 font-bold">{rotuloMes(mes)}</p>
       <ul className="space-y-0.5">
         {itens.map((item) => (

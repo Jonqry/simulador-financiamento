@@ -35,7 +35,7 @@ export function BarraResultado({ resultado, sistemas, reprovado, alvoId }: Barra
   return (
     <aside
       aria-label="Resumo da simulação"
-      className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-tinta bg-papel/95 px-4 py-2 backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-linha/40 bg-branco/95 px-4 py-2 backdrop-blur lg:hidden"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         {reprovado ? (

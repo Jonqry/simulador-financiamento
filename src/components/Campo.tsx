@@ -35,7 +35,7 @@ export function Campo({ rotulo, valor, aoAlterar, aoSair, erro, prefixo, sufixo,
         className={`mt-1 flex items-center rounded-xs border-[1.5px] bg-branco px-3 transition-shadow ${
           erro
             ? 'border-critico focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-critico)_30%,transparent)]'
-            : 'border-linha focus-within:border-tinta focus-within:shadow-[0_0_0_3px_var(--color-sol)]'
+            : 'border-linha focus-within:border-carbono focus-within:shadow-[0_0_0_3px_var(--color-realce)]'
         }`}
       >
         {prefixo && <span className="estreito mr-2 text-sm text-tinta-suave">{prefixo}</span>}

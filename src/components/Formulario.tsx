@@ -82,7 +82,7 @@ function Segmentado<T extends string>({
   aoAlterar: (valor: T) => void
 }) {
   return (
-    <div role="group" aria-label={rotulo} className="grid grid-cols-2 rounded-xs border-2 border-tinta bg-branco">
+    <div role="group" aria-label={rotulo} className="grid grid-cols-2 overflow-hidden rounded-xs border-2 border-carbono bg-branco">
       {opcoes.map((opcao) => (
         <button
           key={opcao.valor}
@@ -90,7 +90,7 @@ function Segmentado<T extends string>({
           aria-pressed={valor === opcao.valor}
           onClick={() => aoAlterar(opcao.valor)}
           className={`px-2 py-1.5 text-sm font-semibold transition ${
-            valor === opcao.valor ? 'bg-tinta text-branco' : 'text-tinta-suave hover:bg-sol hover:text-tinta'
+            valor === opcao.valor ? 'bg-realce text-carbono' : 'text-tinta-suave hover:bg-realce hover:text-tinta'
           }`}
         >
           {opcao.rotulo}
@@ -197,7 +197,7 @@ export function Formulario({
 
   return (
     <form
-      className="space-y-4 rounded-xs border-2 border-tinta bg-branco p-5"
+      className="folha space-y-4 p-5"
       onSubmit={(evento) => evento.preventDefault()}
       aria-label="Dados do financiamento"
     >
@@ -208,7 +208,7 @@ export function Formulario({
         <button
           type="button"
           onClick={reiniciar}
-          className="estreito py-1 text-sm font-medium whitespace-nowrap text-tinta-suave underline underline-offset-4 hover:bg-sol hover:text-tinta"
+          className="estreito py-1 text-sm font-medium whitespace-nowrap text-tinta-suave underline underline-offset-4 hover:bg-realce hover:text-tinta"
           title="Volta aos valores iniciais para simular outro cliente"
         >
           Recomeçar
@@ -361,7 +361,7 @@ export function Formulario({
         </div>
       </Secao>
 
-      <div className="space-y-2 border-t-2 border-tinta pt-4">
+      <div className="space-y-2 border-t-2 border-piso pt-4">
         <p className="text-sm font-semibold">Enviar para o cliente</p>
         {podeEnviar ? (
           <a
