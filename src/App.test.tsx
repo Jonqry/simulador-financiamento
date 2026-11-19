@@ -16,7 +16,8 @@ beforeAll(() => {
 // Os testes abrem um link explícito em vez de depender do cenário padrão:
 // mudar os valores iniciais do formulário não deve quebrar testes de comportamento.
 // Taxa do banco (manual), renda acima do MCMV (SBPE: SAC em destaque) e comparando com a PRICE.
-const LINK_BASE = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&comparar=1'
+// Seguros e taxa explícitos: os valores abaixo foram conferidos com eles, não com os padrões.
+const LINK_BASE = '/?valor=400000&entrada=80000&taxa=11.49&prazo=360&renda=15000&mip=0.025&dfi=0.01&adm=25&comparar=1'
 
 beforeEach(() => {
   window.history.replaceState(null, '', LINK_BASE)
@@ -37,7 +38,7 @@ describe('App', () => {
     expect(screen.getByLabelText('Taxa de juros')).toHaveProperty('value', '8,16')
     expect(screen.getAllByText('Minha Casa, Minha Vida · Faixa 3').length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: 'Financiamento na PRICE' })).toBeTruthy()
-    // Valores conferidos com implementação independente em Python.
+    // Juros + amortização iguais aos da Caixa (R$ 1.443,82) + MIP R$ 22,00 + DFI R$ 17,75 + taxa R$ 25,00.
     const price = screen.getByRole('heading', { name: 'Tabela PRICE' }).closest('article')!
     expect(texto(price)).toContain('R$ 1.508,57') // a Caixa dá R$ 1.508,16: só o MIP difere (vai pela idade)
     // O SAC só aparece quando o corretor pede a comparação.
