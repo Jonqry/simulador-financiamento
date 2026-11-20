@@ -9,7 +9,7 @@ Projeto de portfólio feito por um corretor de imóveis que estuda Sistemas para
 Internet: a ideia é responder com números as perguntas que todo cliente faz —
 *"quanto fica a parcela?"* e *"até quanto eu consigo comprar?"*
 
-![Tela do simulador comparando SAC e PRICE](docs/screenshot.png)
+![Tela do simulador: parcela na PRICE e o carimbo "Cabe na renda"](docs/screenshot.png)
 
 **[Abrir o simulador](https://simulador-financiamento-blush.vercel.app)**
 
